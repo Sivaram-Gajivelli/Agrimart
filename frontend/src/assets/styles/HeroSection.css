@@ -1,0 +1,133 @@
+.hero {
+    position: relative;
+    height: 80vh;
+    overflow: hidden;
+}
+
+.hero-slide {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 1s ease-in-out;
+}
+
+.hero-slide.active {
+  opacity: 1;
+}
+
+.hero-overlay {
+  height: 100%;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-left: 80px;
+}
+
+.hero-overlay h1 {
+  font-size: 3rem;
+  margin-bottom: 15px;
+}
+
+.hero-overlay p {
+  font-size: 1.2rem;
+  margin-bottom: 25px;
+  line-height: 1.6;
+}
+
+.hero-overlay button {
+  width: fit-content;
+  padding: 12px 28px;
+  font-size: 1rem;
+  background-color: #2e7d32;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.hero-overlay button:hover {
+  background-color: #256628;
+}
+
+.hero-dots {
+  position: absolute;
+  bottom: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.dot {
+  height: 10px;
+  width: 10px;
+  margin: 0 6px;
+  background-color: #ccc;
+  border-radius: 50%;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.dot.active {
+  background-color: #2e7d32;
+}
+
+
+/* tablet  */
+
+@media (max-width: 1024px) {
+  .hero-overlay {
+    width: 100%;
+    padding: 0 50px;
+  }
+
+  .hero-overlay h1 {
+    font-size: 2.5rem;
+  }
+}
+
+/* Mobile  */
+@media (max-width: 768px) {
+  .hero {
+    height: calc(100vh - 70px);
+  }
+
+  .hero-overlay {
+    width: 100%;
+    padding: 0 30px;
+    align-items: center;
+    text-align: center;
+  }
+
+  .hero-overlay h1 {
+    font-size: 2rem;
+  }
+
+  .hero-overlay p {
+    font-size: 1rem;
+  }
+
+  .hero-overlay button {
+    margin-top: 15px;
+  }
+
+  .hero-slide {
+    background-position: center;
+  }
+}
+
+
+/* Small phones */
+@media (max-width: 480px) {
+  .hero-overlay h1 {
+    font-size: 1.6rem;
+  }
+
+  .hero-overlay p {
+    font-size: 0.95rem;
+  }
+}

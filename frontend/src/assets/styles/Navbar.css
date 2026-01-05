@@ -1,0 +1,141 @@
+.navbar {
+  width: 100%;
+  height: 70px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1200;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1.5rem;
+
+  /* background: linear-gradient(
+    90deg,
+    #2e7d32,   
+    #66bb6a    
+  ); */
+
+  background: #2e7d32;
+}
+
+.logo {
+  color: #fff;
+  z-index: 1100;
+}
+
+.nav-links {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  position: static;
+  transform: none;
+  height: auto;
+  background: none;
+}
+
+
+.nav-links li {
+  margin: 0;
+}
+
+.nav-links a {
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 1rem;
+  transition: color 0.3s ease;
+}
+
+.nav-links a:hover {
+  color: #fbc02d;
+}
+
+.drawer-header {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 70px;
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+
+  background: #2e7d32;
+}
+
+.close-btn {
+  font-size: 1.8rem;
+  color: white;
+  cursor: pointer;
+}
+
+/* ---------- BACKDROP ---------- */
+
+.nav-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.hamburger {
+  display: none;
+  flex-direction: column;
+  cursor: pointer;
+}
+
+.hamburger span {
+  width: 25px;
+  height: 3px;
+  background: white;
+  margin: 4px 0;
+}
+
+@media (max-width: 768px) {
+
+  /* Show hamburger */
+  .hamburger {
+    display: flex;
+    z-index: 1300;
+  }
+
+  /* Show drawer header ONLY on mobile */
+  .drawer-header {
+    display: flex;
+  }
+
+  /* Convert nav-links into drawer */
+  .nav-links {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 80%;
+    height: 100vh;
+
+    background: #2e7d32;
+
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+
+    padding-top: 90px;
+    gap: 1.2rem;
+
+    transform: translateX(100%);
+    transition: transform 0.4s ease-in-out;
+
+    z-index: 1100;
+  }
+
+  .nav-links.active {
+    transform: translateX(0);
+  }
+
+  .nav-links a {
+    font-size: 1.3rem;
+  }
+}
