@@ -1,0 +1,178 @@
+.about-section {
+  padding: 50px 80px;
+  text-align: center;
+  background: #f9faf7;
+}
+
+.about-section h2 {
+  color: #2e7d32;
+  margin-bottom: 20px;
+}
+
+.about-section p {
+  max-width: 800px;
+  margin: auto;
+  line-height: 1.6;
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  padding: 50px 80px;
+  gap: 30px;
+}
+
+.about-card {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.12),
+    0 8px 20px rgba(0, 0, 0, 0.32);
+}
+
+.about-card h3 {
+  color: #1b5e20;
+  margin-bottom: 10px;
+}
+
+.why-agrimart {
+  padding: 50px 80px;
+  background: #ffffff;
+}
+
+.why-agrimart h2 {
+  text-align: center;
+  margin-bottom: 40px;
+  color: #2e7d32;
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 25px;
+}
+
+.feature-box {
+  background: #f1f8e9;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.feature-box h4 {
+  margin-bottom: 8px;
+}
+
+.user-roles {
+  padding: 50px 80px;
+  background: #f9faf7;
+}
+
+.user-roles h2 {
+  text-align: center;
+  margin-bottom: 40px;
+  color: #2e7d32;
+}
+
+.roles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 25px;
+}
+
+.role-card {
+  background: white;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.future-scope {
+  padding: 50px 80px;
+  text-align: center;
+  background: #ffffff;
+}
+
+.future-scope h2 {
+  color: #2e7d32;
+  margin-bottom: 15px;
+}
+
+.future-scope p {
+  max-width: 800px;
+  margin: auto;
+  line-height: 1.6;
+}
+
+@media (max-width: 600px) {
+  .about-section,
+  .about-grid,
+  .why-agrimart,
+  .user-roles,
+  .future-scope {
+    padding: 30px 20px;
+  }
+
+  .about-section h2,
+  .why-agrimart h2,
+  .user-roles h2,
+  .future-scope h2 {
+    font-size: 22px;
+  }
+
+  .about-section p,
+  .future-scope p {
+    font-size: 15px;
+  }
+
+  .about-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .features {
+    grid-template-columns: 1fr;
+  }
+
+  .roles-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-card,
+  .feature-box,
+  .role-card {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 900px) {
+  .about-section,
+  .about-grid,
+  .why-agrimart,
+  .user-roles,
+  .future-scope {
+    padding: 40px 40px;
+  }
+
+  .about-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .features {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .roles-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 1200px) {
+  .about-section,
+  .about-grid,
+  .why-agrimart,
+  .user-roles,
+  .future-scope {
+    padding: 50px 60px;
+  }
+}

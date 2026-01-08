@@ -1,5 +1,8 @@
 .hero {
     position: relative;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     height: 80vh;
     overflow: hidden;
 }
@@ -10,6 +13,7 @@
   height: 100%;
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
   opacity: 0;
   transition: opacity 1s ease-in-out;
 }
