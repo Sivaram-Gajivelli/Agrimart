@@ -3,6 +3,9 @@ import "./assets/styles/App.css";
 import MainLayout from "./MainLayout";
 import Home from "./app/Home";
 import About from "./app/About";
+import Login from "./auth/Login";
+import Signup from "./auth/Signup";
+import RoleSelect from "./auth/RoleSelect";
 
 function App() {
   return (
@@ -12,6 +15,11 @@ function App() {
         <Route path="/about" element={<About />} />
         {/* Add more pages here */}
       </Route>
+
+      
+      <Route path="/auth" element={<RoleSelect />} />
+      <Route path="/login/:role" element={<Login />} />
+      <Route path="/signup/:role" element={<Signup />} />
     </Routes>
   );
 }

@@ -1,0 +1,215 @@
+/* Layout */
+.auth-wrapper {
+  min-height: 100vh;
+  display: flex;
+}
+
+/* Left Branding Panel */
+.auth-left {
+  flex: 1;
+  color: white;
+  padding: 4rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;      /* Horizontal center */
+  text-align: center;      /* Text center */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+}
+
+/* Dark overlay */
+.auth-left::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 0;
+}
+
+/* Keep text above overlay */
+.auth-left h1,
+.auth-left p {
+  position: relative;
+  z-index: 1;
+  max-width: 420px;
+}
+
+.auth-left h1 {
+  font-size: 2.8rem;
+  font-weight: 800;
+}
+
+.auth-left span {
+  color: #4caf50;
+}
+
+.auth-left p {
+  margin-top: 1rem;
+  font-size: 1.1rem;
+  max-width: 400px;
+}
+
+/* Right Form Panel */
+.auth-right {
+  flex: 1;
+  background: linear-gradient(
+    to bottom right,
+    #f6fbf7,
+    #e8f5e9
+  );
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: sans-serif;
+}
+
+/* Form Card */
+.auth-form {
+  width: 100%;
+  max-width: 420px;
+}
+
+.auth-form h2 {
+  text-align: center;
+  font-size: 2.8rem;
+  color: #2f7d32;
+  margin-bottom: 0.5rem;
+}
+
+.auth-form p {
+  text-align: center;
+  color: #666;
+  margin-bottom: 1.5rem;
+}
+
+/* Inputs */
+.auth-form input,
+.auth-form select {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  margin-bottom: 1rem;
+}
+
+.auth-form input:focus,
+.auth-form select:focus {
+  outline: none;
+  border-color: #4caf50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.15);
+}
+
+/* Button */
+.auth-form button {
+  width: 100%;
+  padding: 12px;
+  background: #2f7d32;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.auth-form button:hover {
+  background: #256428;
+}
+
+/* Role Selection Page */
+/* Full Page Layout */
+.role-page {
+  min-height: 100vh;
+  display: flex;
+  background: linear-gradient(to bottom right, #f5f7f5, #e8f5e9);
+}
+
+/* Vertical Sections */
+.role-section {
+  flex: 1;
+  padding: 4rem 3rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  border-right: 1px solid #ddd;
+  transition: 0.3s ease;
+  background: white;
+}
+
+/* Remove border from last section */
+.role-section:last-child {
+  border-right: none;
+}
+
+/* Hover Effect */
+.role-section:hover {
+  background: #f1f8f4;
+  transform: scale(1.02);
+  z-index: 1;
+}
+
+/* Icons */
+.role-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+/* Titles */
+.role-section h2 {
+  color: #2f7d32;
+  font-size: 2.2rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Tagline */
+.role-tagline {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #4caf50;
+  margin-bottom: 1rem;
+}
+
+/* Description */
+.role-desc {
+  font-size: 15px;
+  color: #555;
+  max-width: 280px;
+  margin-bottom: 2rem;
+}
+
+/* Buttons */
+.role-section button {
+  width: 180px;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 1rem;
+}
+
+.role-login {
+  background: #2f7d32;
+  color: white;
+}
+
+.role-login:hover {
+  background: #256428;
+}
+
+.role-signup {
+  background: transparent;
+  border: 2px solid #2f7d32;
+  color: #2f7d32;
+}
+
+.role-signup:hover {
+  background: #2f7d32;
+  color: white;
+}
