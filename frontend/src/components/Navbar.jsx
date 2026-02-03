@@ -1,9 +1,23 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import "../assets/styles/Navbar.css";
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setIsLoggedIn(!!token);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setIsLoggedIn(false);
+    navigate("/auth");
+  };
 
   return (
     <>
@@ -21,7 +35,6 @@ const Navbar = () => {
             <span></span>
           </div>
         )}
-
 
         {/* Nav Links */}
         <ul className={`nav-links ${menuOpen ? "active" : ""}`}>
@@ -53,6 +66,42 @@ const Navbar = () => {
           <li>
             <Link to="/contact" onClick={() => setMenuOpen(false)}>Contact Us</Link>
           </li>
+
+          {/* AUTH BUTTON */}
+          {!isLoggedIn ? (
+            <li>
+              <Link
+                to="/auth"
+                className="nav-auth-btn"
+                onClick={() => setMenuOpen(false)}
+              >
+                Login / Signup
+              </Link>
+            </li>
+          ) : (
+            <>
+              <li>
+                <Link
+                  to="/dashboard"
+                  className="nav-auth-btn"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Dashboard
+                </Link>
+              </li>
+              <li>
+                <button
+                  className="nav-logout-btn"
+                  onClick={() => {
+                    handleLogout();
+                    setMenuOpen(false);
+                  }}
+                >
+                  Logout
+                </button>
+              </li>
+            </>
+          )}
         </ul>
       </nav>
 

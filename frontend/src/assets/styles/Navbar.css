@@ -139,3 +139,36 @@
     font-size: 1.3rem;
   }
 }
+
+/* ---------- AUTH BUTTONS ---------- */
+
+.nav-auth-btn {
+  background: #ffffff;
+  color: #2e7d32 !important;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.nav-auth-btn:hover {
+  background: #fbc02d;
+  color: #2e7d32 !important;
+}
+
+.nav-logout-btn {
+  background: transparent;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.nav-logout-btn:hover {
+  background: #ffffff;
+  color: #2e7d32;
+}
+

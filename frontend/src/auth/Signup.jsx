@@ -21,6 +21,8 @@ export default function Signup() {
     role: safeRole
   });
 
+  const [passwordError, setPasswordError] = useState("");
+
   // Role taglines
   const roleTaglines = {
     customer: "Fresh from farms, delivered to your doorstep.",
@@ -41,17 +43,24 @@ export default function Signup() {
     "Connecting farmers, retailers, and consumers in one digital marketplace.";
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const updatedForm = { ...form, [e.target.name]: e.target.value };
+    setForm(updatedForm);
+
+    // Live password match check
+    if (
+      updatedForm.confirmPassword &&
+      updatedForm.password !== updatedForm.confirmPassword
+    ) {
+      setPasswordError("Passwords do not match");
+    } else {
+      setPasswordError("");
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Confirm Password Validation
-    if (form.password !== form.confirmPassword) {
-      alert("Passwords do not match!");
-      return;
-    }
+    if (passwordError) return;
 
     try {
       await registerUser({
@@ -68,6 +77,14 @@ export default function Signup() {
       alert("Signup failed");
     }
   };
+
+  const isDisabled =
+    !form.name ||
+    !form.email ||
+    !form.phone ||
+    !form.password ||
+    !form.confirmPassword ||
+    passwordError;
 
   return (
     <div className="auth-wrapper">
@@ -130,7 +147,16 @@ export default function Signup() {
               required
             />
 
-            <button>Create Account</button>
+            {/* Live validation message */}
+            {passwordError && (
+              <p style={{ color: "red", fontSize: "14px" }}>
+                {passwordError}
+              </p>
+            )}
+
+            <button disabled={isDisabled}>
+              Create Account
+            </button>
           </form>
 
           <p>
