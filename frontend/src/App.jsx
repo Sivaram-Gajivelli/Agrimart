@@ -6,6 +6,7 @@ import About from "./app/About";
 import Login from "./auth/Login";
 import Signup from "./auth/Signup";
 import RoleSelect from "./auth/RoleSelect";
+import Dashboard from "./app/Dashboard";
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
       <Route element={<MainLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
+        <Route path="/dashboard" element={<Dashboard/>}/>
         {/* Add more pages here */}
       </Route>
 

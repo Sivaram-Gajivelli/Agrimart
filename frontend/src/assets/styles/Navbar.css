@@ -136,7 +136,7 @@
   }
 
   .nav-links a {
-    font-size: 1.3rem;
+    font-size: 1rem;
   }
 }
 
@@ -171,4 +171,36 @@
   background: #ffffff;
   color: #2e7d32;
 }
+
+/* ---------- PROFILE ICON ---------- */
+
+.nav-profile-btn {
+  background: #ffffff;
+  color: #2e7d32;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.nav-profile-btn:hover {
+  background: #fbc02d;
+  transform: scale(1.05);
+}
+
+/* Mobile drawer alignment */
+@media (max-width: 768px) {
+  .nav-profile-btn {
+    width: 46px;
+    height: 46px;
+    font-size: 1.4rem;
+  }
+}
+
 

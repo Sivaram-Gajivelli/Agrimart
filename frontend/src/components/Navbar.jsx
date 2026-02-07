@@ -13,61 +13,37 @@ const Navbar = () => {
     setIsLoggedIn(!!token);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    setIsLoggedIn(false);
-    navigate("/auth");
-  };
-
   return (
     <>
       <nav className="navbar">
         <h2 className="logo">Agrimart</h2>
 
-        {/* Hamburger (mobile only via CSS) */}
+        {/* Hamburger */}
         {!menuOpen && (
-          <div
-            className="hamburger"
-            onClick={() => setMenuOpen(true)}
-          >
+          <div className="hamburger" onClick={() => setMenuOpen(true)}>
             <span></span>
             <span></span>
             <span></span>
           </div>
         )}
 
-        {/* Nav Links */}
         <ul className={`nav-links ${menuOpen ? "active" : ""}`}>
           
-          {/* Drawer Header — render ONLY when open */}
           {menuOpen && (
             <div className="drawer-header">
-              <span
-                className="close-btn"
-                onClick={() => setMenuOpen(false)}
-              >
+              <span className="close-btn" onClick={() => setMenuOpen(false)}>
                 ✕
               </span>
             </div>
           )}
 
-          <li>
-            <Link to="/" onClick={() => setMenuOpen(false)}>Home</Link>
-          </li>
-          <li>
-            <Link to="/about" onClick={() => setMenuOpen(false)}>About Us</Link>
-          </li>
-          <li>
-            <Link to="/buy" onClick={() => setMenuOpen(false)}>Buy/Sell</Link>
-          </li>
-          <li>
-            <Link to="/services" onClick={() => setMenuOpen(false)}>Services</Link>
-          </li>
-          <li>
-            <Link to="/contact" onClick={() => setMenuOpen(false)}>Contact Us</Link>
-          </li>
+          <li><Link to="/" onClick={() => setMenuOpen(false)}>Home</Link></li>
+          <li><Link to="/about" onClick={() => setMenuOpen(false)}>About Us</Link></li>
+          <li><Link to="/products" onClick={() => setMenuOpen(false)}>Products</Link></li>
+          <li><Link to="/services" onClick={() => setMenuOpen(false)}>Services</Link></li>
+          <li><Link to="/contact" onClick={() => setMenuOpen(false)}>Contact Us</Link></li>
 
-          {/* AUTH BUTTON */}
+          {/* AUTH SECTION */}
           {!isLoggedIn ? (
             <li>
               <Link
@@ -79,38 +55,24 @@ const Navbar = () => {
               </Link>
             </li>
           ) : (
-            <>
-              <li>
-                <Link
-                  to="/dashboard"
-                  className="nav-auth-btn"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Dashboard
-                </Link>
-              </li>
-              <li>
-                <button
-                  className="nav-logout-btn"
-                  onClick={() => {
-                    handleLogout();
-                    setMenuOpen(false);
-                  }}
-                >
-                  Logout
-                </button>
-              </li>
-            </>
+            <li>
+              <button
+                className="nav-profile-btn"
+                onClick={() => {
+                  navigate("/dashboard");
+                  setMenuOpen(false);
+                }}
+                title="Profile"
+              >
+                👤
+              </button>
+            </li>
           )}
         </ul>
       </nav>
 
-      {/* Backdrop — ONLY when drawer open */}
       {menuOpen && (
-        <div
-          className="nav-backdrop"
-          onClick={() => setMenuOpen(false)}
-        />
+        <div className="nav-backdrop" onClick={() => setMenuOpen(false)} />
       )}
     </>
   );

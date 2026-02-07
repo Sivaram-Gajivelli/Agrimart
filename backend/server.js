@@ -23,6 +23,7 @@ connectDB();
 
 // Routes
 app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/user", require("./routes/userRoutes"));
 
 // Protected Test Route
 app.get("/dashboard", auth, (req, res) => {

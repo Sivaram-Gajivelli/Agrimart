@@ -42,7 +42,7 @@ export default function Login() {
     try {
       const res = await loginUser({ ...form, role: safeRole });
       localStorage.setItem("token", res.data.token);
-      window.location.href = `/${safeRole}-dashboard`;
+      window.location.href = `/`;
     } catch {
       alert("Invalid credentials");
     }
