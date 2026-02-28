@@ -1,41 +1,20 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import "../assets/styles/Dashboard.css";
 
 const Dashboard = () => {
-  const [user, setUser] = useState(null);
+  const { isAuthenticated, user, loading, logoutContext } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        window.location.href = "/auth";
-        return;
-      }
-
-      try {
-        const res = await fetch("http://localhost:3000/api/user/profile", {
-          headers: {
-            Authorization: token
-          }
-        });
-
-        const data = await res.json();
-        setUser(data);
-
-      } catch (err) {
-        console.error(err);
-        window.location.href = "/auth";
-      }
-    };
-
-    fetchUser();
-  }, []);
-
+    if (!loading && !isAuthenticated) {
+      navigate("/auth");
+    }
+  }, [loading, isAuthenticated, navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    window.location.href = "/";
+    logoutContext();
   };
 
   const handleEditProfile = () => {
@@ -46,6 +25,7 @@ const Dashboard = () => {
     alert("Change Password page coming next 🔐");
   };
 
+  if (loading) return <div>Loading Profile...</div>;
   if (!user) return null;
 
   return (

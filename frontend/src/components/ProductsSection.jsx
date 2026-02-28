@@ -32,7 +32,7 @@ const ProductsSection = () => {
         unit: "dozen",
         producer: "Farmer",
         location: "Tirupati, AP",
-        image: "https://via.placeholder.com/200"
+        image: "https://placehold.co/200x200/e8f5e9/2f7d32?text=Banana"
       }
     ],
 
@@ -43,7 +43,7 @@ const ProductsSection = () => {
         unit: "kg",
         producer: "Farmer",
         location: "West Godavari, AP",
-        image: "https://via.placeholder.com/200"
+        image: "https://placehold.co/200x200/e8f5e9/2f7d32?text=Rice"
       }
     ],
 
@@ -54,7 +54,7 @@ const ProductsSection = () => {
         unit: "piece",
         producer: "Poultry Farmer",
         location: "Vijayawada, AP",
-        image: "https://via.placeholder.com/200"
+        image: "https://placehold.co/200x200/e8f5e9/2f7d32?text=Eggs"
       },
       {
         name: "Fresh Milk",
@@ -62,7 +62,7 @@ const ProductsSection = () => {
         unit: "litre",
         producer: "Dairy Farmer",
         location: "Krishna, AP",
-        image: "https://via.placeholder.com/200"
+        image: "https://placehold.co/200x200/e8f5e9/2f7d32?text=Milk"
       }
     ]
   };

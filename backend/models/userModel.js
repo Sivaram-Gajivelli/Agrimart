@@ -8,13 +8,15 @@ const userSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      required: true,
-      unique: true
+      required: false,
+      unique: true,
+      sparse: true
     },
     phone: {
       type: String,
-      required: true,
-      unique: true
+      required: false,
+      unique: true,
+      sparse: true
     },
     password: {
       type: String,
@@ -25,10 +27,23 @@ const userSchema = new mongoose.Schema(
       enum: ["customer", "farmer", "retailer"],
       required: true
     },
+
+    // 🔹 Email Verification
     isVerified: {
       type: Boolean,
-      default: true
-    }
+      default: false
+    },
+
+    verificationToken: String,
+    verificationTokenExpires: Date,
+
+    // 🔹 Mobile OTP Verification 
+    isMobileVerified: {
+      type: Boolean,
+      default: false
+    },
+    mobileOTP: String,
+    mobileOTPExpires: Date
   },
   { timestamps: true }
 );
