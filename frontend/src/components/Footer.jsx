@@ -5,13 +5,13 @@ const Footer = () => {
   return (
     <footer className="footer">
       <div className="footer-content">
-        
-        <div>
+
+        <div className="footer-column">
           <h3>AGRIMART</h3>
           <p>Connecting Farmers Directly to Consumers</p>
         </div>
 
-        <div>
+        <div className="footer-column">
           <h4>Quick Links</h4>
           <ul>
             <li>Home</li>
@@ -21,7 +21,7 @@ const Footer = () => {
           </ul>
         </div>
 
-        <div>
+        <div className="footer-column">
           <h4>User Roles</h4>
           <ul>
             <li>Farmers</li>

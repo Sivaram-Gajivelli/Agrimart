@@ -60,9 +60,11 @@ const HeroSection = ({
         style={{ backgroundImage: `url(${image})` }}
       >
         <div className="hero-overlay">
-          <h1>{title}</h1>
-          <p>{desc}</p>
-          {buttonText && <button>{buttonText}</button>}
+          <div className="hero-content">
+            <h1>{title}</h1>
+            <p>{desc}</p>
+            {buttonText && <button>{buttonText}</button>}
+          </div>
         </div>
       </section>
     );
@@ -78,9 +80,11 @@ const HeroSection = ({
           style={{ backgroundImage: `url(${slide.image})` }}
         >
           <div className="hero-overlay">
-            <h1>{slide.title}</h1>
-            <p>{slide.desc}</p>
-            <button>{slide.button}</button>
+            <div className="hero-content">
+              <h1>{slide.title}</h1>
+              <p>{slide.desc}</p>
+              <button>{slide.button}</button>
+            </div>
           </div>
         </div>
       ))}
