@@ -4,9 +4,9 @@ import "../assets/styles/Products.css";
 import tomatoes from "../assets/images/produce/tomatoes.png"
 import potatoes from "../assets/images/produce/potatoes.png"
 
-const ProductsSection = () => {
+const ProductsSection = ({ activeFilter = 'All' }) => {
   const categories = {
-    Vegetables: [
+    'Fresh vegetables': [
       {
         name: "Tomato",
         price: 25,
@@ -25,7 +25,7 @@ const ProductsSection = () => {
       }
     ],
 
-    Fruits: [
+    'Fresh fruits': [
       {
         name: "Banana",
         price: 40,
@@ -36,7 +36,7 @@ const ProductsSection = () => {
       }
     ],
 
-    Grains: [
+    'Atta, rice & grains': [
       {
         name: "Rice",
         price: 55,
@@ -47,7 +47,7 @@ const ProductsSection = () => {
       }
     ],
 
-    "Livestock Essentials": [
+    'Dals & pulses': [
       {
         name: "Farm Eggs",
         price: 6,
@@ -69,19 +69,23 @@ const ProductsSection = () => {
 
   return (
     <section className="products-section">
-      <h2>Featured Products</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+        <h2 style={{ margin: 0 }}>{activeFilter === 'All' ? 'Featured Products' : `${activeFilter}`}</h2>
+        <span style={{ color: 'var(--primary)', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.2rem' }}>See All &gt;</span>
+      </div>
 
-      {Object.entries(categories).map(([category, items]) => (
-        <div key={category} className="category-block">
-          <h3>{category}</h3>
+      {Object.entries(categories)
+        .filter(([category]) => activeFilter === 'All' || category === activeFilter)
+        .map(([category, items]) => (
+          <div key={category} className="category-block">
 
-          <div className="product-grid">
-            {items.map((product, index) => (
-              <ProductCard key={index} product={product} />
-            ))}
+            <div className="product-grid">
+              {items.map((product, index) => (
+                <ProductCard key={index} product={product} />
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
     </section>
   );
 };

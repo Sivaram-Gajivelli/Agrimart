@@ -47,11 +47,51 @@ const Navbar = () => {
             </div>
           )}
 
-          <li><Link to="/" onClick={() => setMenuOpen(false)}>Home</Link></li>
-          <li><Link to="/about" onClick={() => setMenuOpen(false)}>About Us</Link></li>
-          <li><Link to="/products" onClick={() => setMenuOpen(false)}>Products</Link></li>
-          <li><Link to="/services" onClick={() => setMenuOpen(false)}>Services</Link></li>
-          <li><Link to="/contact" onClick={() => setMenuOpen(false)}>Contact Us</Link></li>
+          {/* ROLE-SPECIFIC LINKS */}
+          {(!isAuthenticated || !user) && (
+            <>
+              <li><Link to="/" onClick={() => setMenuOpen(false)}>Home</Link></li>
+              <li><Link to="/about" onClick={() => setMenuOpen(false)}>About Us</Link></li>
+              <li><Link to="/products" onClick={() => setMenuOpen(false)}>Products</Link></li>
+              <li><Link to="/prices" onClick={() => setMenuOpen(false)}>Live Prices</Link></li>
+            </>
+          )}
+
+          {isAuthenticated && user?.role === "customer" && (
+            <>
+              <li><Link to="/" onClick={() => setMenuOpen(false)}>Home</Link></li>
+              <li><Link to="/products?category=Vegetables" onClick={() => setMenuOpen(false)}>Vegetables</Link></li>
+              <li><Link to="/products?category=Fruits" onClick={() => setMenuOpen(false)}>Fruits</Link></li>
+              <li><Link to="/products?category=Grains" onClick={() => setMenuOpen(false)}>Grains & Pulses</Link></li>
+              <li><Link to="/cart" onClick={() => setMenuOpen(false)}>Cart</Link></li>
+              <li><Link to="/orders" onClick={() => setMenuOpen(false)}>Orders</Link></li>
+              <li className="nav-search-item">
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  className="nav-search-input"
+                />
+              </li>
+            </>
+          )}
+
+          {isAuthenticated && user?.role === "farmer" && (
+            <>
+              <li><Link to="/" onClick={() => setMenuOpen(false)}>Home</Link></li>
+              <li><Link to="/my-listings" onClick={() => setMenuOpen(false)}>My Listings</Link></li>
+              <li><Link to="/add-crop" onClick={() => setMenuOpen(false)}>Add Crop</Link></li>
+              <li><Link to="/prices" onClick={() => setMenuOpen(false)}>Live Prices</Link></li>
+            </>
+          )}
+
+          {isAuthenticated && user?.role === "retailer" && (
+            <>
+              <li><Link to="/" onClick={() => setMenuOpen(false)}>Home</Link></li>
+              <li><Link to="/products" onClick={() => setMenuOpen(false)}>Products</Link></li>
+              <li><Link to="/bulk-orders" onClick={() => setMenuOpen(false)}>Bulk Orders</Link></li>
+              <li><Link to="/prices" onClick={() => setMenuOpen(false)}>Live Prices</Link></li>
+            </>
+          )}
 
           {/* AUTH SECTION */}
           {!isAuthenticated ? (

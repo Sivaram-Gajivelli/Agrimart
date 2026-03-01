@@ -138,6 +138,16 @@
   padding-right: 45px;
 }
 
+/* Remove default browser eye icon for password inputs */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+input[type="password"]::-webkit-reveal {
+  display: none;
+}
+
+
 .password-toggle {
   position: absolute;
   right: 15px;

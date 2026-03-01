@@ -220,6 +220,28 @@
   box-shadow: var(--shadow-sm);
 }
 
+.nav-search-item {
+  display: flex;
+  align-items: center;
+}
+
+.nav-search-input {
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-color);
+  outline: none;
+  font-size: 0.9rem;
+  font-family: inherit;
+  width: 200px;
+  background: white;
+  transition: var(--transition);
+}
+
+.nav-search-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+}
+
 /* ---------- PROFILE ICON ---------- */
 
 .nav-profile-btn {

@@ -129,7 +129,7 @@ router.post("/register", authLimiter, registerValidation, async (req, res) => {
       }
 
       return res.status(400).json({
-        message: "User with email or phone already exists"
+        message: "Email or phone number is already in use."
       });
     }
 
@@ -159,15 +159,18 @@ router.post("/register", authLimiter, registerValidation, async (req, res) => {
       ? crypto.randomBytes(32).toString("hex")
       : undefined;
 
-    const newUser = new userModel({
+    const userData = {
       name,
-      email: email || undefined,
-      phone: phone || undefined,
       password: hashedPassword,
       role,
       isVerified: email ? true : false,
       isMobileVerified: phone ? true : false
-    });
+    };
+
+    if (email) userData.email = email;
+    if (phone) userData.phone = phone;
+
+    const newUser = new userModel(userData);
 
     await newUser.save();
 
@@ -181,6 +184,9 @@ router.post("/register", authLimiter, registerValidation, async (req, res) => {
 
   } catch (err) {
     console.error("REGISTER ERROR:", err);
+    if (err.code === 11000) {
+      return res.status(400).json({ message: "Email or phone number is already in use." });
+    }
     return res.status(500).json({ message: "Server error" });
   }
 });

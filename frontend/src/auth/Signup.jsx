@@ -62,23 +62,7 @@ export default function Signup() {
 
   // Removed useEffect for isVerifiedSuccess toast
 
-  useEffect(() => {
-    if (form.email) {
-      fetch(`http://localhost:3000/api/auth/check-verification?email=${form.email}`, {
-        credentials: "include"
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.isVerified) {
-            setEmailVerified(true);
-          }
-          if (data.isMobileVerified) {
-            setMobileVerified(true);
-          }
-        })
-        .catch(() => { });
-    }
-  }, [form.email]);
+
 
   const [passwordError, setPasswordError] = useState("");
 
