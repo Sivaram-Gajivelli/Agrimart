@@ -18,6 +18,7 @@ import Products from "./app/Products";
 import Services from "./app/Services";
 import Contact from "./app/Contact";
 import Prices from "./app/Prices";
+import SellProduce from "./app/SellProduce";
 
 function App() {
   return (
@@ -42,6 +43,7 @@ function App() {
             <Route path="/services" element={<Services />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/prices" element={<Prices />} />
+            <Route path="/sell-produce" element={<SellProduce />} />
           </Route>
 
 

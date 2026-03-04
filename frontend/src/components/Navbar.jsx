@@ -78,9 +78,10 @@ const Navbar = () => {
           {isAuthenticated && user?.role === "farmer" && (
             <>
               <li><Link to="/" onClick={() => setMenuOpen(false)}>Home</Link></li>
-              <li><Link to="/my-listings" onClick={() => setMenuOpen(false)}>My Listings</Link></li>
-              <li><Link to="/add-crop" onClick={() => setMenuOpen(false)}>Add Crop</Link></li>
-              <li><Link to="/prices" onClick={() => setMenuOpen(false)}>Live Prices</Link></li>
+              <li><Link to="/sell-produce" onClick={() => setMenuOpen(false)}>Sell Produce</Link></li>
+              <li><Link to="/my-products" onClick={() => setMenuOpen(false)}>My Products</Link></li>
+              <li><Link to="/orders-received" onClick={() => setMenuOpen(false)}>Orders Received</Link></li>
+              <li><Link to="/revenue" onClick={() => setMenuOpen(false)}>Revenue</Link></li>
             </>
           )}
 
