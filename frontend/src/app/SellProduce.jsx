@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 // Import all images from the produce directory eagerly
 const produceImages = import.meta.glob('../assets/images/produce/*.{png,jpg,jpeg,webp,svg}', { eager: true });
@@ -11,7 +11,26 @@ for (const path in produceImages) {
     imageMap[nameWithoutExt] = produceImages[path].default || produceImages[path];
 }
 
+const CATEGORY_MAPPING = {
+    'Vegetables': ['tomato', 'potato', 'onion', 'cabbage', 'carrot', 'spinach', 'brinjal', 'eggplant', 'garlic', 'ginger', 'peas', 'cucumber', 'pumpkin', 'radish', 'capsicum', 'cauliflower', 'broccoli', 'beans'],
+    'Fruits': ['apple', 'banana', 'mango', 'orange', 'grapes', 'papaya', 'watermelon', 'pomegranate', 'guava', 'pineapple', 'lemon', 'berry', 'cherry', 'strawberry', 'blueberry', 'kiwi'],
+    'Grains & Pulses': ['wheat', 'rice', 'paddy', 'maize', 'corn', 'millet', 'bajra', 'jowar', 'dal', 'lentil', 'chickpea', 'gram', 'soybean', 'mustard', 'oats', 'barley'],
+    'Spices': ['chilli', 'pepper', 'turmeric', 'coriander', 'cumin', 'clove', 'cardamom', 'cinnamon', 'nutmeg', 'fennel', 'saffron', 'garlic', 'ginger']
+};
+
+const guessCategory = (name) => {
+    let lowerName = name.trim().toLowerCase();
+    for (const [cat, keywords] of Object.entries(CATEGORY_MAPPING)) {
+        if (keywords.some(kw => lowerName.includes(kw))) {
+            return cat;
+        }
+    }
+    return '';
+};
+
 const SellProduce = () => {
+    const [marketPrices, setMarketPrices] = useState({ min: null, max: null, modal: null, fetching: false, error: null });
+
     const [formData, setFormData] = useState({
         productName: '',
         category: '',
@@ -29,6 +48,126 @@ const SellProduce = () => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
+
+    const handlePriceBlur = (e) => {
+        const adjustedPrices = getAdjustedPrices();
+        if (adjustedPrices) {
+            let val = parseFloat(formData.pricePerKg);
+            if (!isNaN(val)) {
+                if (val < adjustedPrices.min) {
+                    toast.warning(`Price increased to minimum allowed (₹${adjustedPrices.min})`);
+                    setFormData(prev => ({ ...prev, pricePerKg: adjustedPrices.min.toString() }));
+                } else if (val > adjustedPrices.max) {
+                    toast.warning(`Price decreased to maximum allowed (₹${adjustedPrices.max})`);
+                    setFormData(prev => ({ ...prev, pricePerKg: adjustedPrices.max.toString() }));
+                }
+            }
+        }
+    };
+
+    useEffect(() => {
+        const fetchMarketPrices = async () => {
+            if (!formData.productName || formData.productName.trim().length < 3) {
+                setMarketPrices({ min: null, max: null, modal: null, fetching: false, error: null });
+                return;
+            }
+
+            setMarketPrices(prev => ({ ...prev, fetching: true, error: null }));
+
+            try {
+                // Basic plural normalization for the API
+                let searchCommodity = formData.productName.trim().toLowerCase();
+                if (searchCommodity.endsWith('atoes')) {
+                    searchCommodity = searchCommodity.slice(0, -2); // tomatoes -> tomato, potatoes -> potato
+                } else if (searchCommodity.endsWith('oes') && !searchCommodity.endsWith('shoes')) {
+                    searchCommodity = searchCommodity.slice(0, -2); // mangoes -> mango
+                } else if (searchCommodity.endsWith('ies')) {
+                    searchCommodity = searchCommodity.slice(0, -3) + 'y'; // berries -> berry
+                } else if (searchCommodity.endsWith('s') && !searchCommodity.endsWith('ss')) {
+                    searchCommodity = searchCommodity.slice(0, -1); // onions -> onion, apples -> apple
+                }
+
+                // Fetch securely from our Express backend instead of directly from frontend
+                const apiUrl = `http://localhost:3000/api/market/prices?commodity=${encodeURIComponent(searchCommodity)}`;
+
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error("Backend API returned an error");
+
+                const data = await response.json();
+
+                if (data && data.records && data.records.length > 0) {
+                    let min = Infinity;
+                    let max = -Infinity;
+                    let modalSum = 0;
+                    let modalCount = 0;
+
+                    data.records.forEach(record => {
+                        if (record.min_price && record.min_price < min) min = record.min_price;
+                        if (record.max_price && record.max_price > max) max = record.max_price;
+                        if (record.modal_price) {
+                            modalSum += record.modal_price;
+                            modalCount++;
+                        }
+                    });
+
+                    if (min !== Infinity && max !== -Infinity) {
+                        const modal = modalCount > 0 ? (modalSum / modalCount) : ((min + max) / 2);
+                        setMarketPrices({ min, max, modal, fetching: false, error: null });
+                    } else {
+                        setMarketPrices({ min: null, max: null, modal: null, fetching: false, error: 'Could not determine price range.' });
+                    }
+                } else {
+                    setMarketPrices({ min: null, max: null, modal: null, fetching: false, error: 'No market data found for this product.' });
+                }
+
+            } catch (error) {
+                console.error("Error fetching market prices:", error);
+                setMarketPrices({ min: null, max: null, modal: null, fetching: false, error: 'Failed to fetch market prices.' });
+            }
+        };
+
+        const timeoutId = setTimeout(() => {
+            fetchMarketPrices();
+        }, 800);
+
+        return () => clearTimeout(timeoutId);
+    }, [formData.productName]);
+
+    const getAdjustedPrices = () => {
+        if (marketPrices.min === null || marketPrices.max === null) return null;
+
+        let multiplier = 1; // Base is quintal
+        if (formData.unit === 'kg') multiplier = 0.01;
+        else if (formData.unit === 'ton') multiplier = 10;
+        else if (formData.unit === 'pieces') return null; // Cannot convert pieces to weight reliably
+
+        return {
+            min: parseFloat((marketPrices.min * multiplier).toFixed(2)),
+            max: parseFloat((marketPrices.max * multiplier).toFixed(2)),
+            modal: parseFloat((marketPrices.modal * multiplier).toFixed(2))
+        };
+    };
+
+    // Auto-populate price when modal price is updated and a multiplier is evaluated
+    useEffect(() => {
+        const adjustedPrices = getAdjustedPrices();
+        if (adjustedPrices && adjustedPrices.modal) {
+            setFormData(prev => ({
+                ...prev,
+                pricePerKg: adjustedPrices.modal.toString()
+            }));
+        }
+    }, [marketPrices.modal, formData.unit]);
+
+    // Auto-match category
+    const autoCategory = guessCategory(formData.productName);
+    useEffect(() => {
+        if (autoCategory) {
+            setFormData(prev => ({ ...prev, category: autoCategory }));
+        } else if (!formData.productName) {
+            setFormData(prev => ({ ...prev, category: '' }));
+        }
+    }, [autoCategory, formData.productName]);
 
     const handleGetCurrentLocation = async () => {
         if (navigator.geolocation) {
@@ -70,6 +209,30 @@ const SellProduce = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        // Price validation against market range
+        const adjustedPrices = getAdjustedPrices();
+        if (adjustedPrices) {
+            const enteredPrice = parseFloat(formData.pricePerKg);
+            if (isNaN(enteredPrice)) {
+                toast.error("Please enter a valid price.");
+                return;
+            }
+            if (enteredPrice < adjustedPrices.min || enteredPrice > adjustedPrices.max) {
+                toast.error(`Price must be between ₹${adjustedPrices.min} and ₹${adjustedPrices.max} per ${formData.unit} according to market rates.`);
+                return;
+            }
+        } else if (!marketPrices.error && marketPrices.fetching) {
+            toast.error("Please wait for market prices to fetch.");
+            return;
+        } else if (!formData.productName) {
+            toast.error("Please enter a product name first.");
+            return;
+        } else if (!formData.pricePerKg || isNaN(parseFloat(formData.pricePerKg))) {
+            toast.error("Please enter a valid price.");
+            return;
+        }
+
         console.log("Submitting Produce Data:", formData);
         toast.success("Product listed successfully!");
         // Reset form after standard submission
@@ -116,6 +279,7 @@ const SellProduce = () => {
     };
 
     const imageSrc = getProductImage(formData.productName);
+    const adjustedPrices = getAdjustedPrices();
 
     return (
         <div style={{ padding: '120px 5% 40px', background: 'var(--bg-main)', minHeight: '100vh' }}>
@@ -151,7 +315,13 @@ const SellProduce = () => {
                                     value={formData.category}
                                     onChange={handleChange}
                                     required
-                                    style={{ width: '100%', padding: '12px', border: '1px solid #ccc', borderRadius: '8px', fontSize: '1rem', backgroundColor: 'white' }}
+                                    disabled={!!autoCategory || !formData.productName}
+                                    style={{
+                                        width: '100%', padding: '12px', border: '1px solid #ccc', borderRadius: '8px', fontSize: '1rem',
+                                        backgroundColor: (!!autoCategory || !formData.productName) ? '#f1f5f9' : 'white',
+                                        cursor: (!!autoCategory || !formData.productName) ? 'not-allowed' : 'pointer'
+                                    }}
+                                    title={autoCategory ? "Category auto-matched from product name" : "Select a category"}
                                 >
                                     <option value="" disabled>Select a category</option>
                                     {categories.map(cat => (
@@ -184,23 +354,68 @@ const SellProduce = () => {
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
                             <div>
-                                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-dark)', fontWeight: '500' }}>Price (₹)</label>
+                                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-dark)', fontWeight: '500' }}>
+                                    Price (₹) {(!formData.productName || marketPrices.fetching) && <span style={{ fontSize: '0.8rem', color: '#f59e0b' }}>(Enter product name first)</span>}
+                                </label>
                                 <div style={{ display: 'flex', alignItems: 'center' }}>
                                     <input
                                         type="number"
                                         name="pricePerKg"
                                         value={formData.pricePerKg}
-                                        onChange={handleChange}
+                                        onChange={(e) => {
+                                            let val = e.target.value;
+                                            const adjustedPrices = getAdjustedPrices();
+                                            if (adjustedPrices && val !== '') {
+                                                let num = parseFloat(val);
+                                                if (!isNaN(num) && num > adjustedPrices.max) {
+                                                    toast.warning(`Price corrected to max (₹${adjustedPrices.max})`);
+                                                    val = adjustedPrices.max.toString();
+                                                }
+                                            }
+                                            handleChange({ target: { name: 'pricePerKg', value: val } });
+                                        }}
+                                        onBlur={handlePriceBlur}
                                         placeholder="Ask price"
-                                        min="0"
+                                        min={adjustedPrices ? adjustedPrices.min : "0"}
                                         step="0.01"
                                         required
-                                        style={{ flex: 1, padding: '12px', border: '1px solid #ccc', borderRadius: '8px 0 0 8px', fontSize: '1rem' }}
+                                        disabled={!formData.productName || marketPrices.fetching}
+                                        style={{
+                                            flex: 1, padding: '12px', border: '1px solid #ccc', borderRadius: '8px 0 0 8px', fontSize: '1rem',
+                                            backgroundColor: (!formData.productName || marketPrices.fetching) ? '#f1f5f9' : 'white',
+                                            cursor: (!formData.productName || marketPrices.fetching) ? 'not-allowed' : 'text'
+                                        }}
                                     />
                                     <span style={{ padding: '12px', background: '#f5f5f5', border: '1px solid #ccc', borderLeft: 'none', borderRadius: '0 8px 8px 0', color: '#555' }}>
                                         per {formData.unit}
                                     </span>
                                 </div>
+                                {(() => {
+                                    if (adjustedPrices && formData.pricePerKg) {
+                                        const p = parseFloat(formData.pricePerKg);
+                                        if (!isNaN(p) && p < adjustedPrices.min) {
+                                            return <div style={{ fontSize: '0.8rem', color: '#ef4444', marginTop: '6px', fontWeight: '500' }}>⚠️ Minimum allowed is ₹{adjustedPrices.min}. It will auto-correct on tab.</div>;
+                                        }
+                                    }
+                                    return null;
+                                })()}
+                                {marketPrices.fetching && <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '6px' }}>Fetching current market prices...</div>}
+                                {marketPrices.error && <div style={{ fontSize: '0.8rem', color: '#ef4444', marginTop: '6px' }}>{marketPrices.error}</div>}
+                                {!marketPrices.fetching && adjustedPrices && (
+                                    <div style={{ padding: '10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', marginTop: '10px' }}>
+                                        <div style={{ fontSize: '0.9rem', color: '#166534', fontWeight: 'bold', marginBottom: '4px' }}>
+                                            📊 Market Trends (per {formData.unit})
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '5px', fontSize: '0.85rem', color: '#15803d' }}>
+                                            <div>Min: <strong>₹{adjustedPrices.min}</strong></div>
+                                            <div>Max: <strong>₹{adjustedPrices.max}</strong></div>
+                                            <div>Suggested: <strong style={{ color: 'var(--primary-dark)' }}>₹{adjustedPrices.modal}</strong></div>
+                                        </div>
+                                        <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '6px 0 0 0', fontStyle: 'italic' }}>
+                                            We've auto-filled the suggested price. You can adjust it within the min and max limits.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
                             <div>
@@ -214,13 +429,23 @@ const SellProduce = () => {
                                         placeholder="Stock"
                                         min="1"
                                         required
-                                        style={{ flex: 2, padding: '12px', border: '1px solid #ccc', borderRadius: '8px', fontSize: '1rem' }}
+                                        disabled={!formData.productName}
+                                        style={{
+                                            flex: 2, padding: '12px', border: '1px solid #ccc', borderRadius: '8px', fontSize: '1rem',
+                                            backgroundColor: !formData.productName ? '#f1f5f9' : 'white',
+                                            cursor: !formData.productName ? 'not-allowed' : 'text'
+                                        }}
                                     />
                                     <select
                                         name="unit"
                                         value={formData.unit}
                                         onChange={handleChange}
-                                        style={{ flex: 1, padding: '12px', border: '1px solid #ccc', borderRadius: '8px', fontSize: '1rem', backgroundColor: 'white' }}
+                                        disabled={!formData.productName}
+                                        style={{
+                                            flex: 1, padding: '12px', border: '1px solid #ccc', borderRadius: '8px', fontSize: '1rem',
+                                            backgroundColor: !formData.productName ? '#f1f5f9' : 'white',
+                                            cursor: !formData.productName ? 'not-allowed' : 'pointer'
+                                        }}
                                     >
                                         <option value="kg">kg</option>
                                         <option value="quintal">quintal</option>
@@ -230,6 +455,13 @@ const SellProduce = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Summary of Price x Quantity */}
+                        {formData.pricePerKg && formData.quantityAvailable && (
+                            <div style={{ marginTop: '20px', padding: '15px', background: 'var(--primary-light)', borderRadius: '8px', color: 'var(--primary-dark)', fontWeight: 'bold' }}>
+                                Total Value: ₹{(parseFloat(formData.pricePerKg) * parseFloat(formData.quantityAvailable)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                            </div>
+                        )}
                     </div>
 
                     {/* Section 3: Location */}
@@ -329,8 +561,8 @@ const SellProduce = () => {
                         List Product for Sale
                     </button>
                 </form>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

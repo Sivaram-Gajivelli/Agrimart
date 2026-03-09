@@ -26,6 +26,7 @@ connectDB();
 // Routes
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/user", require("./routes/userRoutes"));
+app.use("/api/market", require("./routes/marketRoutes"));
 
 // Protected Test Route
 app.get("/dashboard", auth, (req, res) => {

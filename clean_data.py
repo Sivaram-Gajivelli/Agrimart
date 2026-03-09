@@ -20,12 +20,12 @@ for file in os.listdir(raw_folder):
         # Select required columns
         df = df[["Price Date", "Min Price", "Max Price", "Modal Price"]]
 
-        # Remove commas from prices
+        # Remove commas
         df["Min Price"] = df["Min Price"].astype(str).str.replace(",", "")
         df["Max Price"] = df["Max Price"].astype(str).str.replace(",", "")
         df["Modal Price"] = df["Modal Price"].astype(str).str.replace(",", "")
 
-        # Convert types
+        # Convert data types
         df["Price Date"] = pd.to_datetime(df["Price Date"], dayfirst=True)
 
         df["Min Price"] = pd.to_numeric(df["Min Price"], errors="coerce")
@@ -34,7 +34,7 @@ for file in os.listdir(raw_folder):
 
         df.dropna(inplace=True)
 
-        # Average prices for same date
+        # Average same-date prices
         df = df.groupby("Price Date").agg({
             "Min Price": "mean",
             "Max Price": "mean",
@@ -46,14 +46,38 @@ for file in os.listdir(raw_folder):
         df["Max Price"] /= 100
         df["Modal Price"] /= 100
 
-        # Round values
-        df = df.round({
-            "Min Price": 2,
-            "Max Price": 2,
-            "Modal Price": 2
-        })
-
+        # Sort by date
         df = df.sort_values("Price Date")
+
+        # ----------------------------
+        # FEATURE ENGINEERING
+        # ----------------------------
+
+        # Month feature
+        df["Month"] = df["Price Date"].dt.month
+
+        # Previous day price
+        df["Prev Price"] = df["Modal Price"].shift(1)
+
+        # Price change
+        df["Price Change"] = df["Modal Price"] - df["Prev Price"]
+
+        # Remove first row (NaN after shift)
+        df.dropna(inplace=True)
+
+        # Round values
+        df = df.round(2)
+
+        # Final dataset
+        df = df[[
+            "Price Date",
+            "Month",
+            "Min Price",
+            "Max Price",
+            "Prev Price",
+            "Price Change",
+            "Modal Price"
+        ]]
 
         # Save cleaned dataset
         output_file = os.path.join(clean_folder, f"cleaned_{file}")
@@ -68,4 +92,4 @@ for file in os.listdir(raw_folder):
         print("Minimum Market Price (₹/kg):", min_price)
         print("Maximum Market Price (₹/kg):", max_price)
 
-print("\nAll datasets cleaned successfully.")
+print("\nAll datasets cleaned and ML-ready.")
