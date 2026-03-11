@@ -19,6 +19,8 @@ import Services from "./app/Services";
 import Contact from "./app/Contact";
 import Prices from "./app/Prices";
 import SellProduce from "./app/SellProduce";
+import MyProducts from "./app/MyProducts";
+import OrdersReceived from "./app/OrdersReceived";
 
 function App() {
   return (
@@ -44,6 +46,8 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/prices" element={<Prices />} />
             <Route path="/sell-produce" element={<SellProduce />} />
+            <Route path="/my-products" element={<MyProducts />} />
+            <Route path="/orders-received" element={<OrdersReceived />} />
           </Route>
 
 

@@ -1,9 +1,37 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import LivePrices from '../components/LivePrices';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 const FarmerHome = () => {
     const navigate = useNavigate();
+    const [stats, setStats] = useState({
+        totalProducts: 0,
+        totalOrders: 0,
+        totalRevenue: 0,
+        pendingOrders: 0
+    });
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const response = await fetch('http://localhost:3000/api/dashboard/farmer-stats', {
+                    credentials: 'include'
+                });
+                if (!response.ok) throw new Error('Failed to fetch dashboard stats');
+                const data = await response.json();
+                setStats(data);
+            } catch (error) {
+                console.error("Error fetching stats:", error);
+                toast.error("Could not load dashboard statistics.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStats();
+    }, []);
 
     return (
         <>
@@ -23,19 +51,27 @@ const FarmerHome = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '40px' }}>
                     <div style={{ background: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', textAlign: 'center' }}>
                         <h3 style={{ color: 'var(--text-dark)', marginBottom: '10px', fontSize: '1.2rem' }}>Total Products Listed</h3>
-                        <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary)' }}>12</p>
+                        <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary)' }}>
+                            {loading ? '...' : stats.totalProducts}
+                        </p>
                     </div>
                     <div style={{ background: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', textAlign: 'center' }}>
                         <h3 style={{ color: 'var(--text-dark)', marginBottom: '10px', fontSize: '1.2rem' }}>Total Orders Received</h3>
-                        <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary)' }}>48</p>
+                        <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary)' }}>
+                            {loading ? '...' : stats.totalOrders}
+                        </p>
                     </div>
                     <div style={{ background: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', textAlign: 'center' }}>
                         <h3 style={{ color: 'var(--text-dark)', marginBottom: '10px', fontSize: '1.2rem' }}>Total Revenue</h3>
-                        <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary)' }}>₹45,200</p>
+                        <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary)' }}>
+                            {loading ? '...' : `₹${stats.totalRevenue.toLocaleString()}`}
+                        </p>
                     </div>
                     <div style={{ background: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', textAlign: 'center' }}>
                         <h3 style={{ color: 'var(--text-dark)', marginBottom: '10px', fontSize: '1.2rem' }}>Pending Orders</h3>
-                        <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--secondary)' }}>5</p>
+                        <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--secondary)' }}>
+                            {loading ? '...' : stats.pendingOrders}
+                        </p>
                     </div>
                 </div>
 
@@ -44,7 +80,7 @@ const FarmerHome = () => {
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap', marginBottom: '40px' }}>
                     <button className="btn btn-primary" onClick={() => navigate('/add-product')} style={{ padding: '15px 30px', fontSize: '1.1rem' }}>Add New Product</button>
                     <button className="btn btn-secondary" onClick={() => navigate('/orders-received')} style={{ padding: '15px 30px', fontSize: '1.1rem' }}>View Orders</button>
-                    <button className="btn btn-secondary" onClick={() => navigate('/my-products')} style={{ padding: '15px 30px', fontSize: '1.1rem' }}>Update Stock</button>
+                    <button className="btn btn-secondary" onClick={() => navigate('/my-products')} style={{ padding: '15px 30px', fontSize: '1.1rem' }}>My Products</button>
                 </div>
 
                 {/* Market Prices Overview */}

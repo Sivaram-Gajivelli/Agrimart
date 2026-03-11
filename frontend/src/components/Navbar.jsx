@@ -54,6 +54,7 @@ const Navbar = () => {
               <li><Link to="/about" onClick={() => setMenuOpen(false)}>About Us</Link></li>
               <li><Link to="/products" onClick={() => setMenuOpen(false)}>Products</Link></li>
               <li><Link to="/prices" onClick={() => setMenuOpen(false)}>Live Prices</Link></li>
+              <li><Link to="/price-prediction" onClick={() => setMenuOpen(false)}>Price Prediction</Link></li>
             </>
           )}
 
@@ -82,6 +83,7 @@ const Navbar = () => {
               <li><Link to="/my-products" onClick={() => setMenuOpen(false)}>My Products</Link></li>
               <li><Link to="/orders-received" onClick={() => setMenuOpen(false)}>Orders Received</Link></li>
               <li><Link to="/revenue" onClick={() => setMenuOpen(false)}>Revenue</Link></li>
+              <li><Link to="/price-prediction" onClick={() => setMenuOpen(false)}>Price Prediction</Link></li>
             </>
           )}
 
@@ -91,6 +93,7 @@ const Navbar = () => {
               <li><Link to="/products" onClick={() => setMenuOpen(false)}>Products</Link></li>
               <li><Link to="/bulk-orders" onClick={() => setMenuOpen(false)}>Bulk Orders</Link></li>
               <li><Link to="/prices" onClick={() => setMenuOpen(false)}>Live Prices</Link></li>
+              <li><Link to="/price-prediction" onClick={() => setMenuOpen(false)}>Price Prediction</Link></li>
             </>
           )}
 

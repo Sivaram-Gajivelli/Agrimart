@@ -1,55 +1,39 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import "../assets/styles/LivePrices.css";
 
 const LivePrices = () => {
-  const [prices] = useState([
-    {
-      id: 1,
-      name: "Tomato",
-      price: 24,
-      unit: "kg",
-      location: "Guntur, AP",
-      updated: "10 mins ago",
-      trend: "down",
-    },
-    {
-      id: 2,
-      name: "Onion",
-      price: 32,
-      unit: "kg",
-      location: "Nashik, MH",
-      updated: "15 mins ago",
-      trend: "up",
-    },
-    {
-      id: 3,
-      name: "Potato",
-      price: 28,
-      unit: "kg",
-      location: "Agra, UP",
-      updated: "5 mins ago",
-      trend: "up",
-    },
-    {
-      id: 4,
-      name: "Rice",
-      price: 55,
-      unit: "kg",
-      location: "West Godavari, AP",
-      updated: "20 mins ago",
-      trend: "stable",
-    },
-    {
-      id: 5,
-      name: "Wheat",
-      price: 38,
-      unit: "kg",
-      location: "Indore, MP",
-      updated: "12 mins ago",
-      trend: "down",
-    },
-  ]);
+  const [prices, setPrices] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPrices = async () => {
+      try {
+        const response = await fetch("http://localhost:3000/api/market/prices?limit=4");
+        if (!response.ok) throw new Error("Failed to fetch market prices");
+        const data = await response.json();
+
+        if (data.records && data.records.length > 0) {
+          const formattedPrices = data.records.map((record, index) => ({
+            id: index + 1,
+            name: record.commodity,
+            price: record.modal_price ? Math.round(Number(record.modal_price) / 100) : "N/A", // Convert per quintal to per kg (approx)
+            unit: "kg",
+            location: `${record.market}, ${record.state}`,
+            updated: record.arrival_date || "Today",
+            trend: "stable", // The API doesn't provide historical data in a single request, so default to stable
+          }));
+          setPrices(formattedPrices);
+        }
+      } catch (error) {
+        console.error("Error loading live prices:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPrices();
+  }, []);
 
   return (
     <section className="live-prices">
@@ -65,8 +49,11 @@ const LivePrices = () => {
       </div>
 
       <div className="price-cards">
-        {prices.map((item) => (
-          <div className="price-card" key={item.id}>
+        {loading ? (
+          <p style={{ textAlign: "center", width: "100%", padding: "20px", color: "var(--text-light)" }}>Loading live market data...</p>
+        ) : (
+          prices.map((item) => (
+            <div className="price-card" key={item.id}>
             <h3>{item.name}</h3>
 
             <p className="price">
@@ -92,7 +79,7 @@ const LivePrices = () => {
               </span>
             </div>
           </div>
-        ))}
+        )))}
       </div>
     </section>
   );

@@ -134,17 +134,19 @@ const SellProduce = () => {
     }, [formData.productName]);
 
     const getAdjustedPrices = () => {
-        if (marketPrices.min === null || marketPrices.max === null) return null;
+        if (marketPrices.modal === null) return null;
 
         let multiplier = 1; // Base is quintal
         if (formData.unit === 'kg') multiplier = 0.01;
         else if (formData.unit === 'ton') multiplier = 10;
         else if (formData.unit === 'pieces') return null; // Cannot convert pieces to weight reliably
 
+        const adjustedModal = marketPrices.modal * multiplier;
+
         return {
-            min: parseFloat((marketPrices.min * multiplier).toFixed(2)),
-            max: parseFloat((marketPrices.max * multiplier).toFixed(2)),
-            modal: parseFloat((marketPrices.modal * multiplier).toFixed(2))
+            min: parseFloat((adjustedModal * 0.8).toFixed(2)),
+            max: parseFloat((adjustedModal * 1.2).toFixed(2)),
+            modal: parseFloat(adjustedModal.toFixed(2))
         };
     };
 
@@ -207,7 +209,7 @@ const SellProduce = () => {
         }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         // Price validation against market range
@@ -233,19 +235,56 @@ const SellProduce = () => {
             return;
         }
 
-        console.log("Submitting Produce Data:", formData);
-        toast.success("Product listed successfully!");
-        // Reset form after standard submission
-        setFormData({
-            productName: '',
-            category: '',
-            description: '',
-            pricePerKg: '',
-            quantityAvailable: '',
-            unit: 'kg',
-            locationType: 'manual',
-            manualLocation: '',
-        });
+        // Make sure we have a category assigned (either auto-detected or explicitly set)
+        const finalCategory = autoCategory || formData.category;
+        if (!finalCategory) {
+            toast.error("Could not determine product category. Please try a different product name.");
+            return;
+        }
+
+        try {
+            const response = await fetch('http://localhost:3000/api/products', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include', // Includes HTTP-only cookies like auth token
+                body: JSON.stringify({
+                    productName: formData.productName,
+                    category: finalCategory,
+                    description: formData.description,
+                    pricePerKg: formData.pricePerKg,
+                    quantityAvailable: formData.quantityAvailable,
+                    unit: formData.unit,
+                    locationType: formData.locationType,
+                    manualLocation: formData.manualLocation
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Failed to list product.");
+            }
+
+            console.log("Submitting Produce Data:", formData);
+            toast.success("Product listed successfully!");
+
+            // Reset form after standard submission
+            setFormData({
+                productName: '',
+                category: '',
+                description: '',
+                pricePerKg: '',
+                quantityAvailable: '',
+                unit: 'kg',
+                locationType: 'manual',
+                manualLocation: '',
+            });
+
+        } catch (error) {
+            console.error("Error submitting product:", error);
+            toast.error(error.message || "Failed to submit product.");
+        }
     };
 
     // Advanced image matching logic
@@ -310,34 +349,21 @@ const SellProduce = () => {
 
                             <div>
                                 <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-dark)', fontWeight: '500' }}>Category</label>
-                                <select
-                                    name="category"
-                                    value={formData.category}
-                                    onChange={handleChange}
-                                    required
-                                    disabled={!!autoCategory || !formData.productName}
-                                    style={{
-                                        width: '100%', padding: '12px', border: '1px solid #ccc', borderRadius: '8px', fontSize: '1rem',
-                                        backgroundColor: (!!autoCategory || !formData.productName) ? '#f1f5f9' : 'white',
-                                        cursor: (!!autoCategory || !formData.productName) ? 'not-allowed' : 'pointer'
-                                    }}
-                                    title={autoCategory ? "Category auto-matched from product name" : "Select a category"}
-                                >
-                                    <option value="" disabled>Select a category</option>
-                                    {categories.map(cat => (
-                                        <option key={cat} value={cat}>{cat}</option>
-                                    ))}
-                                </select>
+                                <div style={{
+                                    width: '100%', padding: '12px', border: '1px solid #ccc', borderRadius: '8px', fontSize: '1rem',
+                                    backgroundColor: '#f8fafc', color: 'var(--text-dark)', display: 'flex', alignItems: 'center', minHeight: '48px'
+                                }}>
+                                    {autoCategory || formData.category || <span style={{ color: '#94a3b8' }}>Auto-detected from product name</span>}
+                                </div>
                             </div>
 
                             <div>
-                                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-dark)', fontWeight: '500' }}>Description</label>
+                                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-dark)', fontWeight: '500' }}>Description <span style={{ color: '#94a3b8', fontSize: '0.9em', fontWeight: 'normal' }}>(Optional)</span></label>
                                 <textarea
                                     name="description"
                                     value={formData.description}
                                     onChange={handleChange}
-                                    placeholder="Describe your produce (e.g., Freshly harvested, organic...)"
-                                    required
+                                    placeholder="Describe your produce (Optional)"
                                     rows="4"
                                     style={{ width: '100%', padding: '12px', border: '1px solid #ccc', borderRadius: '8px', fontSize: '1rem', resize: 'vertical' }}
                                 ></textarea>
