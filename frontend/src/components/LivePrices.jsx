@@ -10,11 +10,30 @@ const LivePrices = () => {
     const fetchPrices = async () => {
       try {
         const response = await fetch("http://localhost:3000/api/market/prices?limit=4");
-        if (!response.ok) throw new Error("Failed to fetch market prices");
-        const data = await response.json();
+        
+        // Fetch explicit commodities
+        const mangoRes = await fetch("http://localhost:3000/api/market/prices?commodity=Mango&limit=1");
+        const melonRes = await fetch("http://localhost:3000/api/market/prices?commodity=Water%20Melon&limit=1");
 
-        if (data.records && data.records.length > 0) {
-          const formattedPrices = data.records.map((record, index) => ({
+        let allRecords = [];
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.records) allRecords = [...data.records];
+        }
+
+        if (mangoRes.ok) {
+            const data = await mangoRes.json();
+            if (data.records) allRecords = [...allRecords, ...data.records];
+        }
+
+        if (melonRes.ok) {
+            const data = await melonRes.json();
+            if (data.records) allRecords = [...allRecords, ...data.records];
+        }
+
+        if (allRecords.length > 0) {
+          const formattedPrices = allRecords.map((record, index) => ({
             id: index + 1,
             name: record.commodity,
             price: record.modal_price ? Math.round(Number(record.modal_price) / 100) : "N/A", // Convert per quintal to per kg (approx)
@@ -23,7 +42,18 @@ const LivePrices = () => {
             updated: record.arrival_date || "Today",
             trend: "stable", // The API doesn't provide historical data in a single request, so default to stable
           }));
-          setPrices(formattedPrices);
+          
+          // Deduplicate by name
+          const uniquePrices = [];
+          const seen = new Set();
+          for (const item of formattedPrices) {
+             if (!seen.has(item.name)) {
+                seen.add(item.name);
+                uniquePrices.push(item);
+             }
+          }
+
+          setPrices(uniquePrices);
         }
       } catch (error) {
         console.error("Error loading live prices:", error);

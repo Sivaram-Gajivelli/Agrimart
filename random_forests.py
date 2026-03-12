@@ -4,7 +4,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
 import joblib
-from datetime import timedelta
+from datetime import datetime, timedelta
+import numpy as np
 
 clean_folder = "datasets/cleaned"
 
@@ -38,6 +39,8 @@ data["Vegetable"] = veg_names.cat.codes
 # -----------------------------
 # FEATURES AND TARGET
 # -----------------------------
+data["Price Multiplier"] = np.where(data["Prev Price"] == 0, 1.0, data["Modal Price"] / data["Prev Price"])
+
 X = data[[
     "Vegetable",
     "Month",
@@ -47,7 +50,7 @@ X = data[[
     "Price Change"
 ]]
 
-y = data["Modal Price"]
+y = data["Price Multiplier"]
 
 # -----------------------------
 # TRAIN TEST SPLIT
@@ -134,26 +137,51 @@ for veg_code, veg_name in veg_mapping.items():
 
     last_row = veg_data.iloc[-1]
 
-    # Next day prediction date
-    prediction_date = pd.to_datetime(last_row["Price Date"]) + timedelta(days=1)
+    current_row = last_row.copy()
+    current_modal_price = current_row["Modal Price"]
+    
+    for i in range(1, 8):
+        prediction_date = datetime.now() + timedelta(days=i)
 
-    sample = pd.DataFrame([{
-        "Vegetable": veg_code,
-        "Month": last_row["Month"],
-        "Min Price": last_row["Min Price"],
-        "Max Price": last_row["Max Price"],
-        "Prev Price": last_row["Prev Price"],
-        "Price Change": last_row["Price Change"]
-    }])
+        sample = pd.DataFrame([{
+            "Vegetable": veg_code,
+            "Month": prediction_date.month,
+            "Min Price": current_row["Min Price"],
+            "Max Price": current_row["Max Price"],
+            "Prev Price": current_row["Prev Price"],
+            "Price Change": current_row["Price Change"]
+        }])
 
-    predicted_price = model.predict(sample)[0]
+        predicted_multiplier = model.predict(sample)[0]
+        
+        # Calculate confidence interval
+        tree_preds = [tree.predict(sample.values)[0] for tree in model.estimators_]
+        std_dev = np.std(tree_preds)
+        
+        range_min_multiplier = max(0, predicted_multiplier - std_dev)
+        range_max_multiplier = predicted_multiplier + std_dev
+        
+        cv = std_dev / predicted_multiplier if predicted_multiplier > 0 else 0
+        if cv <= 0.05:
+            confidence = "High"
+        elif cv <= 0.15:
+            confidence = "Medium"
+        else:
+            confidence = "Low"
 
-    future_predictions.append({
-        "Date": prediction_date.strftime("%Y-%m-%d"),
-        "Vegetable": veg_name,
-        "Current Price": round(last_row["Modal Price"],2),
-        "Predicted Price": round(predicted_price,2)
-    })
+        future_predictions.append({
+            "Date": prediction_date.strftime("%d-%m-%Y"),
+            "Vegetable": veg_name,
+            "Predicted Multiplier": round(predicted_multiplier, 4),
+            "Range Min Multiplier": round(range_min_multiplier, 4),
+            "Range Max Multiplier": round(range_max_multiplier, 4),
+            "Confidence": confidence
+        })
+        
+        # Update features for next day's prediction using a simulated price
+        next_simulated_price = current_row["Prev Price"] * predicted_multiplier
+        current_row["Price Change"] = next_simulated_price - current_row["Prev Price"]
+        current_row["Prev Price"] = next_simulated_price
 
 future_df = pd.DataFrame(future_predictions)
 

@@ -21,6 +21,7 @@ import Prices from "./app/Prices";
 import SellProduce from "./app/SellProduce";
 import MyProducts from "./app/MyProducts";
 import OrdersReceived from "./app/OrdersReceived";
+import PricePrediction from "./app/PricePrediction";
 
 function App() {
   return (
@@ -48,6 +49,7 @@ function App() {
             <Route path="/sell-produce" element={<SellProduce />} />
             <Route path="/my-products" element={<MyProducts />} />
             <Route path="/orders-received" element={<OrdersReceived />} />
+            <Route path="/price-prediction" element={<PricePrediction />} />
           </Route>
 
 

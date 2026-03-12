@@ -82,7 +82,7 @@ const Navbar = () => {
               <li><Link to="/sell-produce" onClick={() => setMenuOpen(false)}>Sell Produce</Link></li>
               <li><Link to="/my-products" onClick={() => setMenuOpen(false)}>My Products</Link></li>
               <li><Link to="/orders-received" onClick={() => setMenuOpen(false)}>Orders Received</Link></li>
-              <li><Link to="/revenue" onClick={() => setMenuOpen(false)}>Revenue</Link></li>
+              <li><Link to="/prices" onClick={() => setMenuOpen(false)}>Live Prices</Link></li>
               <li><Link to="/price-prediction" onClick={() => setMenuOpen(false)}>Price Prediction</Link></li>
             </>
           )}

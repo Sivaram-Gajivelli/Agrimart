@@ -30,6 +30,7 @@ app.use("/api/market", require("./routes/marketRoutes"));
 app.use("/api/products", require("./routes/productRoutes"));
 app.use("/api/orders", require("./routes/orderRoutes"));
 app.use("/api/dashboard", require("./routes/dashboardRoutes"));
+app.use("/api/predictions", require("./routes/predictionRoutes"));
 
 // Protected Test Route
 app.get("/dashboard", auth, (req, res) => {

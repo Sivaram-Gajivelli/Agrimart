@@ -11,11 +11,30 @@ const Prices = () => {
             try {
                 // Fetch up to 100 records for the "all prices" view
                 const response = await fetch("http://localhost:3000/api/market/prices?limit=100");
-                if (!response.ok) throw new Error("Failed to fetch market prices");
-                const data = await response.json();
+                
+                // Fetch explicit commodities
+                const mangoRes = await fetch("http://localhost:3000/api/market/prices?commodity=Mango&limit=1");
+                const melonRes = await fetch("http://localhost:3000/api/market/prices?commodity=Water%20Melon&limit=1");
+        
+                let allRecords = [];
 
-                if (data.records && data.records.length > 0) {
-                    const formattedPrices = data.records.map((record, index) => ({
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.records) allRecords = [...data.records];
+                }
+        
+                if (mangoRes.ok) {
+                    const data = await mangoRes.json();
+                    if (data.records) allRecords = [...data.records, ...allRecords]; // Prepend for visibility
+                }
+        
+                if (melonRes.ok) {
+                    const data = await melonRes.json();
+                    if (data.records) allRecords = [...data.records, ...allRecords]; // Prepend for visibility
+                }
+
+                if (allRecords.length > 0) {
+                    const formattedPrices = allRecords.map((record, index) => ({
                         id: index + 1,
                         name: record.commodity,
                         price: record.modal_price ? Math.round(Number(record.modal_price) / 100) : "N/A", // Convert quintal to kg
@@ -24,7 +43,19 @@ const Prices = () => {
                         updated: record.arrival_date || "Today",
                         trend: "stable", 
                     }));
-                    setPrices(formattedPrices);
+
+                    // Deduplicate by name and location
+                    const uniquePrices = [];
+                    const seen = new Set();
+                    for (const item of formattedPrices) {
+                        const key = `${item.name}-${item.location}`;
+                        if (!seen.has(key)) {
+                            seen.add(key);
+                            uniquePrices.push(item);
+                        }
+                    }
+
+                    setPrices(uniquePrices);
                 }
             } catch (error) {
                 console.error("Error loading live prices:", error);
