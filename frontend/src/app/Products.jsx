@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
 const produceImages = import.meta.glob('../assets/images/produce/*.{png,jpg,jpeg,webp,svg}', { eager: true });
@@ -25,6 +26,9 @@ const getProductImage = (productName) => {
 };
 
 const Products = () => {
+    const [searchParams] = useSearchParams();
+    const categoryFilter = searchParams.get('category');
+    const searchQuery = searchParams.get('search');
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [buyingProduct, setBuyingProduct] = useState(null);
@@ -35,7 +39,21 @@ const Products = () => {
             try {
                 const response = await fetch('http://localhost:3000/api/products/marketplace');
                 if (!response.ok) throw new Error('Failed to fetch marketplace');
-                const data = await response.json();
+                let data = await response.json();
+                
+                if (categoryFilter) {
+                    data = data.filter(p => p.category === categoryFilter);
+                }
+
+                if (searchQuery) {
+                    const query = searchQuery.toLowerCase();
+                    data = data.filter(p => 
+                        p.productName.toLowerCase().includes(query) || 
+                        (p.description && p.description.toLowerCase().includes(query)) ||
+                        p.category.toLowerCase().includes(query)
+                    );
+                }
+
                 setProducts(data);
             } catch (error) {
                 console.error("Error:", error);
@@ -45,7 +63,7 @@ const Products = () => {
             }
         };
         fetchMarketplace();
-    }, []);
+    }, [categoryFilter, searchQuery]);
 
     const handleBuyClick = (product) => {
         setBuyingProduct(product);
@@ -88,6 +106,12 @@ const Products = () => {
         }
     };
 
+    const getPageTitle = () => {
+        if (searchQuery) return `Search Results for "${searchQuery}"`;
+        if (categoryFilter) return `${categoryFilter} Marketplace`;
+        return "Fresh Produce Marketplace";
+    };
+
     if (loading) {
         return <div style={{ padding: '120px 5% 40px', minHeight: '60vh', textAlign: 'center' }}><h2>Loading Marketplace...</h2></div>;
     }
@@ -95,7 +119,7 @@ const Products = () => {
     return (
         <div style={{ padding: '120px 5% 40px', background: 'var(--bg-main)', minHeight: '100vh' }}>
             <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                <h1 style={{ color: 'var(--primary-dark)', marginBottom: '30px', textAlign: 'center', fontSize: '2.5rem' }}>Fresh Produce Marketplace</h1>
+                <h1 style={{ color: 'var(--primary-dark)', marginBottom: '30px', textAlign: 'center', fontSize: '2.5rem' }}>{getPageTitle()}</h1>
 
                 {products.length === 0 ? (
                     <div style={{ background: 'white', padding: '50px', borderRadius: '15px', textAlign: 'center' }}>

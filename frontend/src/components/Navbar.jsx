@@ -20,8 +20,16 @@ const LogoutIcon = () => (
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const { isAuthenticated, user, logoutContext } = useAuth();
   const navigate = useNavigate();
+
+  const handleSearch = (e) => {
+    if (e.key === 'Enter' && searchTerm.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchTerm.trim())}`);
+      setMenuOpen(false);
+    }
+  };
 
   return (
     <>
@@ -63,7 +71,7 @@ const Navbar = () => {
               <li><Link to="/" onClick={() => setMenuOpen(false)}>Home</Link></li>
               <li><Link to="/products?category=Vegetables" onClick={() => setMenuOpen(false)}>Vegetables</Link></li>
               <li><Link to="/products?category=Fruits" onClick={() => setMenuOpen(false)}>Fruits</Link></li>
-              <li><Link to="/products?category=Grains" onClick={() => setMenuOpen(false)}>Grains & Pulses</Link></li>
+              <li><Link to="/products?category=Grains %26 Pulses" onClick={() => setMenuOpen(false)}>Grains & Pulses</Link></li>
               <li><Link to="/cart" onClick={() => setMenuOpen(false)}>Cart</Link></li>
               <li><Link to="/orders" onClick={() => setMenuOpen(false)}>Orders</Link></li>
               <li className="nav-search-item">
@@ -71,6 +79,9 @@ const Navbar = () => {
                   type="text"
                   placeholder="Search products..."
                   className="nav-search-input"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={handleSearch}
                 />
               </li>
             </>

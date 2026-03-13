@@ -1,34 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ProductsSection from '../components/ProductsSection';
 import LivePrices from '../components/LivePrices';
+import fruitsAndVegs from '../assets/images/produce/fruitsandvegs.png';
+import vegetables from '../assets/images/produce/vegetables.png';
+import fruits from '../assets/images/produce/fruits.png';
+import grainsAndPulses from '../assets/images/produce/grainsandpulses.png';
+import { getMarketplaceProducts } from '../services/productService';
 
-// Mock trending products for display
-const trendingProducts = [
-    {
-        name: "Organic Honey",
-        price: 350,
-        unit: "kg",
-        producer: "Bee Farm",
-        location: "Coorg, KA",
-        image: "https://placehold.co/200x200/fff3e0/e65100?text=Honey"
-    },
-    {
-        name: "Alphonso Mango",
-        price: 800,
-        unit: "dozen",
-        producer: "Orchard",
-        location: "Ratnagiri, MH",
-        image: "https://placehold.co/200x200/fff3e0/e65100?text=Mango"
-    },
-    {
-        name: "Cold Pressed Oil",
-        price: 250,
-        unit: "litre",
-        producer: "Mill",
-        location: "Erode, TN",
-        image: "https://placehold.co/200x200/fff3e0/e65100?text=Oil"
+// Import images for trending section
+const produceImages = import.meta.glob('../assets/images/produce/*.{png,jpg,jpeg,webp,svg}', { eager: true });
+const imageMap = {};
+for (const path in produceImages) {
+    const filename = path.split('/').pop().toLowerCase();
+    const nameWithoutExt = filename.split('.')[0];
+    imageMap[nameWithoutExt] = produceImages[path].default || produceImages[path];
+}
+
+const getProductImage = (productName) => {
+    if (!productName || productName.trim() === '') return null;
+    let normalized = productName.trim().toLowerCase().replace(/\s+/g, '-');
+    if (imageMap[normalized]) return imageMap[normalized];
+    if (normalized.endsWith('s') && imageMap[normalized.slice(0, -1)]) return imageMap[normalized.slice(0, -1)];
+    if (imageMap[normalized + 's']) return imageMap[normalized + 's'];
+    for (const key in imageMap) {
+        if (normalized.length > 2 && key.length > 2) {
+            if (normalized.includes(key) || key.includes(normalized)) return imageMap[key];
+        }
     }
-];
+    return null;
+};
 
 const CategoryCard = ({ label, active, onClick, image }) => (
     <div
@@ -70,7 +71,22 @@ const CategoryCard = ({ label, active, onClick, image }) => (
 );
 
 const CustomerHome = () => {
-    const [activeFilter, setActiveFilter] = useState('Fresh vegetables');
+    const navigate = useNavigate();
+    const [activeFilter, setActiveFilter] = useState('All Products');
+    const [trendingProducts, setTrendingProducts] = useState([]);
+
+    useEffect(() => {
+        const fetchTrending = async () => {
+            try {
+                const response = await getMarketplaceProducts();
+                // Pick 5 random or first products as trending
+                setTrendingProducts(response.data.slice(0, 5));
+            } catch (error) {
+                console.error("Error fetching trending products:", error);
+            }
+        };
+        fetchTrending();
+    }, []);
 
     return (
         <>
@@ -83,36 +99,38 @@ const CustomerHome = () => {
             <div style={{ padding: '30px 5%', background: 'white' }}>
                 <div style={{ display: 'flex', gap: '25px', overflowX: 'auto', paddingBottom: '10px', justifyContent: 'center' }}>
                     <CategoryCard
+                        label="All Products"
+                        image={fruitsAndVegs}
+                        active={activeFilter === 'All Products'}
+                        onClick={() => navigate('/products')}
+                    />
+                    <CategoryCard
                         label="Fresh vegetables"
-                        image="https://placehold.co/150x150/transparent/2f7d32?text=🥬"
+                        image={vegetables}
                         active={activeFilter === 'Fresh vegetables'}
-                        onClick={() => setActiveFilter('Fresh vegetables')}
+                        onClick={() => navigate('/products?category=Vegetables')}
                     />
                     <CategoryCard
                         label="Fresh fruits"
-                        image="https://placehold.co/150x150/transparent/2f7d32?text=🍎"
+                        image={fruits}
                         active={activeFilter === 'Fresh fruits'}
-                        onClick={() => setActiveFilter('Fresh fruits')}
+                        onClick={() => navigate('/products?category=Fruits')}
                     />
                     <CategoryCard
-                        label="Atta, rice & grains"
-                        image="https://placehold.co/150x150/transparent/2f7d32?text=🌾"
-                        active={activeFilter === 'Atta, rice & grains'}
-                        onClick={() => setActiveFilter('Atta, rice & grains')}
-                    />
-                    <CategoryCard
-                        label="Dals & pulses"
-                        image="https://placehold.co/150x150/transparent/2f7d32?text=🥣"
-                        active={activeFilter === 'Dals & pulses'}
-                        onClick={() => setActiveFilter('Dals & pulses')}
+                        label="Grains & Pulses"
+                        image={grainsAndPulses}
+                        active={activeFilter === 'Grains & Pulses'}
+                        onClick={() => navigate('/products?category=Grains %26 Pulses')}
                     />
                 </div>
             </div>
 
             {/* Featured Products (Using existing ProductsSection) */}
             <div style={{ padding: '20px 0', background: 'var(--bg-main)' }}>
-                {/* We pass the active filter to ProductsSection (which we will update to accept it) */}
-                <ProductsSection activeFilter={activeFilter} />
+                <ProductsSection 
+                    activeFilter={activeFilter} 
+                    onSeeAll={(category) => navigate(`/products?category=${category}`)}
+                />
             </div>
 
             {/* Trending Products (Dense Layout) */}
@@ -121,15 +139,22 @@ const CustomerHome = () => {
                 <div style={{ display: 'flex', gap: '15px', overflowX: 'auto', paddingBottom: '15px' }}>
                     {trendingProducts.map((product, idx) => (
                         <div key={idx} style={{ flex: '0 0 auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '12px', width: '200px', background: 'var(--bg-card)', boxShadow: 'var(--shadow-sm)' }}>
-                            <img src={product.image} alt={product.name} style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: 'var(--radius-sm)', marginBottom: '10px' }} />
-                            <h3 style={{ fontSize: '1.1rem', margin: '0 0 5px 0' }}>{product.name}</h3>
-                            <p style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{product.location} • {product.producer}</p>
+                            <img 
+                                src={getProductImage(product.productName) || "https://placehold.co/200x200/fff3e0/e65100?text=" + product.productName} 
+                                alt={product.productName} 
+                                style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: 'var(--radius-sm)', marginBottom: '10px' }} 
+                            />
+                            <h3 style={{ fontSize: '1.1rem', margin: '0 0 5px 0' }}>{product.productName}</h3>
+                            <p style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{product.manualLocation} • {product.farmer?.name || "Farmer"}</p>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--primary-dark)' }}>₹{product.price}/{product.unit}</span>
+                                <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--primary-dark)' }}>₹{product.pricePerKg}/{product.unit}</span>
                                 <button style={{ background: 'var(--primary)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 'bold' }}>Add</button>
                             </div>
                         </div>
                     ))}
+                    {trendingProducts.length === 0 && (
+                         <div style={{ color: 'var(--text-muted)' }}>No trending products at the moment.</div>
+                    )}
                 </div>
             </div>
 

@@ -1,91 +1,129 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import ProductCard from "./ProductCard";
 import "../assets/styles/Products.css";
-import tomatoes from "../assets/images/produce/tomatoes.png"
-import potatoes from "../assets/images/produce/potatoes.png"
+import { getMarketplaceProducts } from "../services/productService";
 
-const ProductsSection = ({ activeFilter = 'All' }) => {
-  const categories = {
-    'Fresh vegetables': [
-      {
-        name: "Tomato",
-        price: 25,
-        unit: "kg",
-        producer: "Farmer",
-        location: "Guntur, AP",
-        image: tomatoes
-      },
-      {
-        name: "Potato",
-        price: 30,
-        unit: "kg",
-        producer: "Farmer",
-        location: "Nashik, MH",
-        image: potatoes
-      }
-    ],
+// Import all images from the produce directory eagerly
+const produceImages = import.meta.glob('../assets/images/produce/*.{png,jpg,jpeg,webp,svg}', { eager: true });
+const imageMap = {};
+for (const path in produceImages) {
+  const filename = path.split('/').pop().toLowerCase();
+  const nameWithoutExt = filename.split('.')[0];
+  imageMap[nameWithoutExt] = produceImages[path].default || produceImages[path];
+}
 
-    'Fresh fruits': [
-      {
-        name: "Banana",
-        price: 40,
-        unit: "dozen",
-        producer: "Farmer",
-        location: "Tirupati, AP",
-        image: "https://placehold.co/200x200/e8f5e9/2f7d32?text=Banana"
-      }
-    ],
+const getProductImage = (productName) => {
+  if (!productName || productName.trim() === '') return null;
+  let normalized = productName.trim().toLowerCase().replace(/\s+/g, '-');
+  if (imageMap[normalized]) return imageMap[normalized];
+  if (normalized.endsWith('s') && imageMap[normalized.slice(0, -1)]) return imageMap[normalized.slice(0, -1)];
+  if (imageMap[normalized + 's']) return imageMap[normalized + 's'];
+  for (const key in imageMap) {
+    if (normalized.length > 2 && key.length > 2) {
+      if (normalized.includes(key) || key.includes(normalized)) return imageMap[key];
+    }
+  }
+  return null;
+};
 
-    'Atta, rice & grains': [
-      {
-        name: "Rice",
-        price: 55,
-        unit: "kg",
-        producer: "Farmer",
-        location: "West Godavari, AP",
-        image: "https://placehold.co/200x200/e8f5e9/2f7d32?text=Rice"
-      }
-    ],
+const ProductsSection = ({ activeFilter = 'All', onSeeAll }) => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-    'Dals & pulses': [
-      {
-        name: "Farm Eggs",
-        price: 6,
-        unit: "piece",
-        producer: "Poultry Farmer",
-        location: "Vijayawada, AP",
-        image: "https://placehold.co/200x200/e8f5e9/2f7d32?text=Eggs"
-      },
-      {
-        name: "Fresh Milk",
-        price: 55,
-        unit: "litre",
-        producer: "Dairy Farmer",
-        location: "Krishna, AP",
-        image: "https://placehold.co/200x200/e8f5e9/2f7d32?text=Milk"
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await getMarketplaceProducts();
+        setProducts(response.data);
+      } catch (error) {
+        console.error("Error fetching marketplace products:", error);
+      } finally {
+        setLoading(false);
       }
-    ]
+    };
+    fetchProducts();
+  }, []);
+
+  // Map display labels to DB categories
+  const categoryMap = {
+    'Fresh vegetables': 'Vegetables',
+    'Fresh fruits': 'Fruits',
+    'Grains & Pulses': 'Grains & Pulses'
   };
+
+  const getDBValue = (label) => categoryMap[label] || label;
+
+  // Group and filter products
+  const categorizedProducts = products.reduce((acc, product) => {
+    // Determine the display category
+    let displayCategory = product.category;
+    // Normalize if it's one of our known ones
+    for (const [label, dbValue] of Object.entries(categoryMap)) {
+      if (product.category === dbValue) {
+        displayCategory = label;
+        break;
+      }
+    }
+
+    if (!acc[displayCategory]) acc[displayCategory] = [];
+    acc[displayCategory].push(product);
+    return acc;
+  }, {});
+
+  if (loading) {
+    return <section className="products-section"><div className="loading">Loading products...</div></section>;
+  }
+
+  const effectiveFilter = (activeFilter === 'All' || activeFilter === 'All Products') ? 'All' : activeFilter;
 
   return (
     <section className="products-section">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-        <h2 style={{ margin: 0 }}>{activeFilter === 'All' ? 'Featured Products' : `${activeFilter}`}</h2>
-        <span style={{ color: 'var(--primary)', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.2rem' }}>See All &gt;</span>
+        <h2 style={{ margin: 0 }}>{effectiveFilter === 'All' ? 'Featured Products' : activeFilter}</h2>
       </div>
 
-      {Object.entries(categories)
-        .filter(([category]) => activeFilter === 'All' || category === activeFilter)
-        .map(([category, items]) => (
-          <div key={category} className="category-block">
-
-            <div className="product-grid">
-              {items.map((product, index) => (
-                <ProductCard key={index} product={product} />
-              ))}
+      {Object.entries(categorizedProducts)
+        .filter(([category]) => effectiveFilter === 'All' || category === activeFilter)
+        .map(([category, items]) => {
+          const displayItems = effectiveFilter === 'All' ? items.slice(0, 4) : items;
+          const dbCategory = getDBValue(category);
+          return (
+            <div key={category} className="category-block" style={{ marginBottom: '40px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '15px' }}>
+                <h3 style={{ margin: 0 }}>{category}</h3>
+                {effectiveFilter === 'All' && items.length > 4 && (
+                  <span 
+                    onClick={() => onSeeAll && onSeeAll(dbCategory)}
+                    style={{ color: 'var(--primary)', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}
+                  >
+                    See All &gt;
+                  </span>
+                )}
+              </div>
+              <div className="product-grid">
+                {displayItems.map((product) => (
+                  <ProductCard
+                    key={product._id}
+                    product={{
+                      ...product,
+                      name: product.productName,
+                      price: product.pricePerKg,
+                      producer: product.farmer?.name || "Verified Farmer",
+                      location: product.manualLocation,
+                      image: getProductImage(product.productName) || null
+                    }}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
+      
+      {products.length === 0 && !loading && (
+        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+          No products found in the marketplace.
+        </div>
+      )}
     </section>
   );
 };

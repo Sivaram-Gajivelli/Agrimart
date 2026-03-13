@@ -136,14 +136,78 @@ router.delete('/:id', auth, async (req, res) => {
 // @access  Public (or protected depending on auth rule, keeping simple public for now)
 router.get('/marketplace', async (req, res) => {
     try {
-        // Fetch only verified products and populate farmer info if needed
-        const products = await Product.find({ verificationStatus: 'verified' })
+        // Fetch products that are verified, pending, or in quality assessment for development visibility
+        const products = await Product.find({ 
+            $or: [
+                { verificationStatus: { $in: ['verified', 'pending', 'quality assessment'] } },
+                { verificationStatus: { $exists: false } },
+                { verificationStatus: null }
+            ]
+        })
             .populate('farmer', 'name email phone')
             .sort({ createdAt: -1 });
 
         res.json(products);
     } catch (error) {
         console.error('Error fetching marketplace products:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// @route   GET /api/products/:id
+// @desc    Get single product details
+// @access  Public
+router.get('/:id', async (req, res) => {
+    try {
+        const product = await Product.findById(req.params.id).populate('farmer', 'name email phone');
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+        res.json(product);
+    } catch (error) {
+        console.error('Error fetching product details:', error);
+        if (error.kind === 'ObjectId') {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// @route   POST /api/products/:id/reviews
+// @desc    Create new review
+// @access  Private
+router.post('/:id/reviews', auth, async (req, res) => {
+    try {
+        const { rating, comment } = req.body;
+        const product = await Product.findById(req.params.id);
+
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        const alreadyReviewed = product.reviews.find(
+            (r) => r.user.toString() === req.user.id.toString()
+        );
+
+        if (alreadyReviewed) {
+            return res.status(400).json({ message: 'Product already reviewed' });
+        }
+
+        const review = {
+            name: req.user.name,
+            rating: Number(rating),
+            comment,
+            user: req.user.id,
+        };
+
+        product.reviews.push(review);
+        product.numReviews = product.reviews.length;
+        product.rating = product.reviews.reduce((acc, item) => item.rating + acc, 0) / product.reviews.length;
+
+        await product.save();
+        res.status(201).json({ message: 'Review added' });
+    } catch (error) {
+        console.error('Error adding review:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 });
