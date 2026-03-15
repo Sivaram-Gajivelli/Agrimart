@@ -5,10 +5,17 @@ const Prices = () => {
     const [prices, setPrices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [lastUpdated, setLastUpdated] = useState(null);
 
     useEffect(() => {
         const fetchAllPrices = async () => {
             try {
+                const statusRes = await fetch("http://localhost:3000/api/market/status");
+                if (statusRes.ok) {
+                    const statusData = await statusRes.json();
+                    setLastUpdated(statusData.prices);
+                }
+
                 // Fetch up to 100 records for the "all prices" view
                 const response = await fetch("http://localhost:3000/api/market/prices?limit=100");
                 
@@ -77,6 +84,11 @@ const Prices = () => {
             <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                 <h1 style={{ color: 'var(--primary)', fontSize: '2.5rem', marginBottom: '1rem' }}>Live Market Prices</h1>
                 <p style={{ color: 'var(--text-light)', fontSize: '1.2rem' }}>Comprehensive real-time pricing data across all regions.</p>
+                {lastUpdated && (
+                    <p style={{ color: '#64748b', fontSize: '1rem', marginTop: '0.5rem' }}>
+                        Last updated: {new Date(lastUpdated).toLocaleDateString('en-GB')} {new Date(lastUpdated).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                )}
             </div>
 
             <div style={{ maxWidth: '800px', margin: '0 auto 2rem auto' }}>

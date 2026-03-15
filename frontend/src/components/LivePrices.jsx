@@ -5,10 +5,17 @@ import "../assets/styles/LivePrices.css";
 const LivePrices = () => {
   const [prices, setPrices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   useEffect(() => {
     const fetchPrices = async () => {
       try {
+        const statusRes = await fetch("http://localhost:3000/api/market/status");
+        if (statusRes.ok) {
+            const statusData = await statusRes.json();
+            setLastUpdated(statusData.prices);
+        }
+
         const response = await fetch("http://localhost:3000/api/market/prices?limit=4");
         
         // Fetch explicit commodities
@@ -71,6 +78,11 @@ const LivePrices = () => {
         <div className="header-left">
           <h2>Today’s Market Prices</h2>
           <span className="badge">Live</span>
+          {lastUpdated && (
+            <span style={{ marginLeft: '12px', fontSize: '0.85rem', color: 'var(--text-light)' }}>
+              (Last update: {new Date(lastUpdated).toLocaleDateString('en-GB')} {new Date(lastUpdated).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })})
+            </span>
+          )}
         </div>
 
         <Link to="/prices" className="view-all-btn">

@@ -463,6 +463,10 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
 
     // Compare passwords
     const isMatch = await bcrypt.compare(password, user.password);
+    const logMsg = `Login attempt: [${new Date().toISOString()}] email=${email}, role=${role}, pw_len=${password.length}, hash_len=${user.password.length}, isMatch=${isMatch}\n`;
+    try { require('fs').appendFileSync('C:/Users/sivay/Desktop/Projects/Final year Batch 14 Project/Agrimart/backend/login_debug.log', logMsg); } catch(e) {}
+    console.log(logMsg);
+    
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
     }

@@ -79,7 +79,66 @@
 
 .action-buttons {
   display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.quantity-selector {
+  display: flex;
+  align-items: center;
   gap: 15px;
+  background: #f8fafc;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid #e2e8f0;
+  width: fit-content;
+}
+
+.qty-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #cbd5e1;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-dark);
+}
+
+.qty-btn:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+
+.qty-input {
+  width: 50px;
+  text-align: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 5px;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* Hide arrows in number input */
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.total-price-preview {
+  font-weight: 700;
+  color: var(--primary-dark);
+  font-size: 1.1rem;
+  margin-left: 10px;
+  padding-left: 20px;
+  border-left: 2px solid #e2e8f0;
 }
 
 .btn-add-cart {
@@ -87,9 +146,17 @@
   background: #ffd814;
   border: 1px solid #fcd200;
   border-radius: 100px;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 1.1rem;
   cursor: pointer;
-  box-shadow: 0 2px 5px rgba(213, 217, 217, 0.5);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  transition: all 0.2s;
+}
+
+.btn-add-cart:hover {
+  background: #f7ca00;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.15);
 }
 
 .btn-buy-now {

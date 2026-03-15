@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { CartProvider } from "./context/CartContext";
 import "./assets/styles/App.css";
 import MainLayout from "./MainLayout";
 import Home from "./app/Home";
@@ -23,6 +24,8 @@ import MyProducts from "./app/MyProducts";
 import OrdersReceived from "./app/OrdersReceived";
 import PricePrediction from "./app/PricePrediction";
 import ProductDetails from "./app/ProductDetails";
+import Cart from "./app/Cart";
+import CartSidebar from "./components/CartSidebar";
 
 function App() {
   return (
@@ -38,29 +41,32 @@ function App() {
       />
 
       <AuthProvider>
-        <Routes>
-          <Route element={<MainLayout />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/products" element={<Products />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/prices" element={<Prices />} />
-            <Route path="/sell-produce" element={<SellProduce />} />
-            <Route path="/my-products" element={<MyProducts />} />
-            <Route path="/orders-received" element={<OrdersReceived />} />
-            <Route path="/price-prediction" element={<PricePrediction />} />
-            <Route path="/product/:id" element={<ProductDetails />} />
-          </Route>
+        <CartProvider>
+          <Routes>
+            <Route element={<MainLayout />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/services" element={<Services />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/prices" element={<Prices />} />
+              <Route path="/sell-produce" element={<SellProduce />} />
+              <Route path="/my-products" element={<MyProducts />} />
+              <Route path="/orders-received" element={<OrdersReceived />} />
+              <Route path="/price-prediction" element={<PricePrediction />} />
+              <Route path="/product/:id" element={<ProductDetails />} />
+              <Route path="/cart" element={<Cart />} />
+            </Route>
 
 
-          <Route path="/auth" element={<RoleSelect />} />
-          <Route path="/login/:role" element={<Login />} />
-          <Route path="/signup/:role" element={<Signup />} />
-          <Route path="/forgot-password/verify" element={<ForgotPasswordVerify />} />
-          <Route path="/forgot-password/reset" element={<ForgotPasswordReset />} />
-        </Routes>
+            <Route path="/auth" element={<RoleSelect />} />
+            <Route path="/login/:role" element={<Login />} />
+            <Route path="/signup/:role" element={<Signup />} />
+            <Route path="/forgot-password/verify" element={<ForgotPasswordVerify />} />
+            <Route path="/forgot-password/reset" element={<ForgotPasswordReset />} />
+          </Routes>
+        </CartProvider>
       </AuthProvider>
     </>
   );

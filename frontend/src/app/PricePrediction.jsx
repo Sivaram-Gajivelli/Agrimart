@@ -27,37 +27,37 @@ const PricePrediction = () => {
     const [predictions, setPredictions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedProduct, setSelectedProduct] = useState(null);
+    const [lastUpdated, setLastUpdated] = useState(null);
 
     useEffect(() => {
         const fetchPredictions = async () => {
             try {
-                // Fetch ML Multipliers
-                const predResponse = await fetch("http://localhost:3000/api/predictions");
+                // Parallelize all fetch requests
+                const [statusRes, predResponse, liveRes, mangoRes, melonRes, potatoRes] = await Promise.all([
+                    fetch("http://localhost:3000/api/market/status"),
+                    fetch("http://localhost:3000/api/predictions"),
+                    fetch("http://localhost:3000/api/market/prices?limit=100"),
+                    fetch("http://localhost:3000/api/market/prices?commodity=Mango&limit=5"),
+                    fetch("http://localhost:3000/api/market/prices?commodity=Water%20Melon&limit=5"),
+                    fetch("http://localhost:3000/api/market/prices?commodity=Potato&limit=25")
+                ]);
+
+                if (statusRes.ok) {
+                    const statusData = await statusRes.json();
+                    setLastUpdated(statusData.prices || statusData.predictions);
+                }
+
                 if (!predResponse.ok) throw new Error("Failed to fetch predictions.");
                 const predData = await predResponse.json();
 
-                // Fetch Live API Prices
-                const liveResponse = await fetch("http://localhost:3000/api/market/prices?limit=100");
-                const mangoRes = await fetch("http://localhost:3000/api/market/prices?commodity=Mango&limit=5");
-                const melonRes = await fetch("http://localhost:3000/api/market/prices?commodity=Water%20Melon&limit=5");
-                const potatoRes = await fetch("http://localhost:3000/api/market/prices?commodity=Potato&limit=25");
-
                 let liveRecords = [];
-                if (liveResponse.ok) {
-                    const data = await liveResponse.json();
-                    if (data.records) liveRecords = [...data.records];
-                }
-                if (mangoRes.ok) {
-                    const data = await mangoRes.json();
-                    if (data.records) liveRecords = [...liveRecords, ...data.records];
-                }
-                if (melonRes.ok) {
-                    const data = await melonRes.json();
-                    if (data.records) liveRecords = [...liveRecords, ...data.records];
-                }
-                if (potatoRes.ok) {
-                    const data = await potatoRes.json();
-                    if (data.records) liveRecords = [...liveRecords, ...data.records];
+                const responses = [liveRes, mangoRes, melonRes, potatoRes];
+                
+                for (const res of responses) {
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.records) liveRecords = [...liveRecords, ...data.records];
+                    }
                 }
 
                 let livePricesMap = {};
@@ -179,7 +179,7 @@ const PricePrediction = () => {
                     Stay ahead of the market. Our Random Forest AI analyzes historical trends to predict tomorrow's modal prices, helping you price your produce strategically.
                 </p>
                 <p style={{ color: '#64748b', fontSize: '1rem', marginTop: '1rem' }}>
-                    Last updated: {new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}
+                    Last updated: {lastUpdated ? new Date(lastUpdated).toLocaleDateString('en-GB').replace(/\//g, '-') : 'Checking...'}
                 </p>
             </div>
 

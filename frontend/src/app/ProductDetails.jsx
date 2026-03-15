@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { getProductById, addProductReview } from "../services/productService";
+import { useCart } from "../context/CartContext";
 import { toast } from "react-toastify";
 import "../assets/styles/ProductDetails.css";
 
@@ -42,11 +43,14 @@ const renderStars = (rating) => {
 
 const ProductDetails = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const { addToCartGlobal } = useCart();
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -79,6 +83,10 @@ const ProductDetails = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleAddToCart = async () => {
+    await addToCartGlobal(id, quantity);
   };
 
   if (loading) return <div className="loading">Loading product...</div>;
@@ -122,8 +130,34 @@ const ProductDetails = () => {
             <p>{product.description || "No description available for this fresh produce."}</p>
           </div>
           <div className="action-buttons">
-            <button className="btn-add-cart">Add to Cart</button>
-            <button className="btn-buy-now">Buy Now</button>
+            <div className="quantity-selector" style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Select Quantity:</label>
+              <select 
+                className="qty-input" 
+                value={quantity} 
+                onChange={(e) => setQuantity(parseFloat(e.target.value))}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '1rem' }}
+              >
+                <option value={0.25}>250 g</option>
+                <option value={0.5}>500 g</option>
+                <option value={0.75}>750 g</option>
+                <option value={1}>1 kg</option>
+                <option value={1.25}>1.25 kg</option>
+                <option value={1.5}>1.5 kg</option>
+                <option value={1.75}>1.75 kg</option>
+                <option value={2}>2 kg</option>
+                <option value={2.5}>2.5 kg</option>
+                <option value={3}>3 kg</option>
+                <option value={4}>4 kg</option>
+                <option value={5}>5 kg</option>
+              </select>
+              <div style={{ marginTop: '10px', fontWeight: '700', fontSize: '1.2rem', color: 'var(--primary-dark)' }}>
+                Total: ₹{(product.pricePerKg * quantity).toFixed(2)}
+              </div>
+            </div>
+            <button className="btn-add-cart" style={{ width: '100%', padding: '15px', borderRadius: '4px', background: 'var(--primary)', border: 'none', color: 'white', fontWeight: 'bold' }} onClick={handleAddToCart}>
+              Add to cart
+            </button>
           </div>
         </div>
       </div>

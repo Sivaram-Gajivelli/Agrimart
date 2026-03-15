@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { useCart } from '../context/CartContext';
 import ProductsSection from '../components/ProductsSection';
 import LivePrices from '../components/LivePrices';
 import fruitsAndVegs from '../assets/images/produce/fruitsandvegs.png';
@@ -74,6 +76,12 @@ const CustomerHome = () => {
     const navigate = useNavigate();
     const [activeFilter, setActiveFilter] = useState('All Products');
     const [trendingProducts, setTrendingProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const { addToCartGlobal } = useCart();
+
+    const handleAddToCart = async (product) => {
+        await addToCartGlobal(product._id, 1);
+    };
 
     useEffect(() => {
         const fetchTrending = async () => {
@@ -102,25 +110,25 @@ const CustomerHome = () => {
                         label="All Products"
                         image={fruitsAndVegs}
                         active={activeFilter === 'All Products'}
-                        onClick={() => navigate('/products')}
+                        onClick={() => setActiveFilter('All Products')}
                     />
                     <CategoryCard
                         label="Fresh vegetables"
                         image={vegetables}
                         active={activeFilter === 'Fresh vegetables'}
-                        onClick={() => navigate('/products?category=Vegetables')}
+                        onClick={() => setActiveFilter('Fresh vegetables')}
                     />
                     <CategoryCard
                         label="Fresh fruits"
                         image={fruits}
                         active={activeFilter === 'Fresh fruits'}
-                        onClick={() => navigate('/products?category=Fruits')}
+                        onClick={() => setActiveFilter('Fresh fruits')}
                     />
                     <CategoryCard
                         label="Grains & Pulses"
                         image={grainsAndPulses}
                         active={activeFilter === 'Grains & Pulses'}
-                        onClick={() => navigate('/products?category=Grains %26 Pulses')}
+                        onClick={() => setActiveFilter('Grains & Pulses')}
                     />
                 </div>
             </div>
@@ -138,17 +146,22 @@ const CustomerHome = () => {
                 <h2 style={{ color: 'var(--primary-dark)', fontSize: '1.5rem', marginBottom: '20px' }}>Trending Now</h2>
                 <div style={{ display: 'flex', gap: '15px', overflowX: 'auto', paddingBottom: '15px' }}>
                     {trendingProducts.map((product, idx) => (
-                        <div key={idx} style={{ flex: '0 0 auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '12px', width: '200px', background: 'var(--bg-card)', boxShadow: 'var(--shadow-sm)' }}>
+                        <div key={idx} style={{ flex: '0 0 auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '12px', width: '240px', background: 'var(--bg-card)', boxShadow: 'var(--shadow-sm)' }}>
                             <img 
                                 src={getProductImage(product.productName) || "https://placehold.co/200x200/fff3e0/e65100?text=" + product.productName} 
                                 alt={product.productName} 
-                                style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: 'var(--radius-sm)', marginBottom: '10px' }} 
+                                style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: 'var(--radius-sm)', marginBottom: '10px' }} 
                             />
                             <h3 style={{ fontSize: '1.1rem', margin: '0 0 5px 0' }}>{product.productName}</h3>
                             <p style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{product.manualLocation} • {product.farmer?.name || "Farmer"}</p>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--primary-dark)' }}>₹{product.pricePerKg}/{product.unit}</span>
-                                <button style={{ background: 'var(--primary)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 'bold' }}>Add</button>
+                                <button 
+                                    style={{ background: 'var(--primary)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 'bold' }}
+                                    onClick={() => handleAddToCart(product)}
+                                >
+                                    Add to cart
+                                </button>
                             </div>
                         </div>
                     ))}

@@ -18,16 +18,29 @@ const LogoutIcon = () => (
   </svg>
 );
 
+const SearchIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8"></circle>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+  </svg>
+);
+
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const { isAuthenticated, user, logoutContext } = useAuth();
   const navigate = useNavigate();
 
-  const handleSearch = (e) => {
-    if (e.key === 'Enter' && searchTerm.trim()) {
+  const triggerSearch = () => {
+    if (searchTerm.trim()) {
       navigate(`/products?search=${encodeURIComponent(searchTerm.trim())}`);
       setMenuOpen(false);
+    }
+  };
+
+  const handleSearch = (e) => {
+    if (e.key === 'Enter') {
+      triggerSearch();
     }
   };
 
@@ -58,6 +71,21 @@ const Navbar = () => {
           {/* ROLE-SPECIFIC LINKS */}
           {(!isAuthenticated || !user) && (
             <>
+              <li className="nav-search-item">
+                <div className="search-box">
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    className="nav-search-input"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={handleSearch}
+                  />
+                  <button className="search-icon-btn" onClick={triggerSearch}>
+                    <SearchIcon />
+                  </button>
+                </div>
+              </li>
               <li><Link to="/" onClick={() => setMenuOpen(false)}>Home</Link></li>
               <li><Link to="/about" onClick={() => setMenuOpen(false)}>About Us</Link></li>
               <li><Link to="/products" onClick={() => setMenuOpen(false)}>Products</Link></li>
@@ -68,27 +96,47 @@ const Navbar = () => {
 
           {isAuthenticated && user?.role === "customer" && (
             <>
+              <li className="nav-search-item">
+                <div className="search-box">
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    className="nav-search-input"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={handleSearch}
+                  />
+                  <button className="search-icon-btn" onClick={triggerSearch}>
+                    <SearchIcon />
+                  </button>
+                </div>
+              </li>
               <li><Link to="/" onClick={() => setMenuOpen(false)}>Home</Link></li>
-              <li><Link to="/products?category=Vegetables" onClick={() => setMenuOpen(false)}>Vegetables</Link></li>
-              <li><Link to="/products?category=Fruits" onClick={() => setMenuOpen(false)}>Fruits</Link></li>
-              <li><Link to="/products?category=Grains %26 Pulses" onClick={() => setMenuOpen(false)}>Grains & Pulses</Link></li>
+              <li><Link to="/products?category=Vegetables" onClick={() => setMenuOpen(false)}>Fresh vegetables</Link></li>
+              <li><Link to="/products?category=Fruits" onClick={() => setMenuOpen(false)}>Fresh fruits</Link></li>
+              <li><Link to="/products?category=Grains %26 Pulses" onClick={() => setMenuOpen(false)}>Fresh Grains & Pulses</Link></li>
               <li><Link to="/cart" onClick={() => setMenuOpen(false)}>Cart</Link></li>
               <li><Link to="/orders" onClick={() => setMenuOpen(false)}>Orders</Link></li>
-              <li className="nav-search-item">
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  className="nav-search-input"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={handleSearch}
-                />
-              </li>
             </>
           )}
 
           {isAuthenticated && user?.role === "farmer" && (
             <>
+              <li className="nav-search-item">
+                <div className="search-box">
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    className="nav-search-input"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={handleSearch}
+                  />
+                  <button className="search-icon-btn" onClick={triggerSearch}>
+                    <SearchIcon />
+                  </button>
+                </div>
+              </li>
               <li><Link to="/" onClick={() => setMenuOpen(false)}>Home</Link></li>
               <li><Link to="/sell-produce" onClick={() => setMenuOpen(false)}>Sell Produce</Link></li>
               <li><Link to="/my-products" onClick={() => setMenuOpen(false)}>My Products</Link></li>
@@ -100,6 +148,21 @@ const Navbar = () => {
 
           {isAuthenticated && user?.role === "retailer" && (
             <>
+              <li className="nav-search-item">
+                <div className="search-box">
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    className="nav-search-input"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={handleSearch}
+                  />
+                  <button className="search-icon-btn" onClick={triggerSearch}>
+                    <SearchIcon />
+                  </button>
+                </div>
+              </li>
               <li><Link to="/" onClick={() => setMenuOpen(false)}>Home</Link></li>
               <li><Link to="/products" onClick={() => setMenuOpen(false)}>Products</Link></li>
               <li><Link to="/bulk-orders" onClick={() => setMenuOpen(false)}>Bulk Orders</Link></li>
