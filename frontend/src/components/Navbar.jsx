@@ -171,6 +171,11 @@ const Navbar = () => {
             </>
           )}
 
+          {/* TRANSLATE WIDGET */}
+          <li className="nav-item translate-widget-container">
+            <div id="google_translate_element"></div>
+          </li>
+
           {/* AUTH SECTION */}
           {!isAuthenticated ? (
             <li>
