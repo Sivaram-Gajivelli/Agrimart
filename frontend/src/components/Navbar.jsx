@@ -115,7 +115,7 @@ const Navbar = () => {
               <li><Link to="/products?category=Vegetables" onClick={() => setMenuOpen(false)}>Fresh vegetables</Link></li>
               <li><Link to="/products?category=Fruits" onClick={() => setMenuOpen(false)}>Fresh fruits</Link></li>
               <li><Link to="/products?category=Grains %26 Pulses" onClick={() => setMenuOpen(false)}>Fresh Grains & Pulses</Link></li>
-              <li><Link to="/cart" onClick={() => setMenuOpen(false)}>Cart</Link></li>
+              <li><Link to="/cart" onClick={() => setMenuOpen(false)}><span className="notranslate" translate="no">Cart</span></Link></li>
               <li><Link to="/orders" onClick={() => setMenuOpen(false)}>Orders</Link></li>
             </>
           )}

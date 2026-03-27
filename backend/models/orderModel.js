@@ -20,6 +20,16 @@ const orderSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    deliveryFee: {
+        type: Number,
+        required: true,
+        default: 0
+    },
+    platformFee: {
+        type: Number,
+        required: true,
+        default: 0
+    },
     totalPrice: {
         type: Number,
         required: true
@@ -28,6 +38,10 @@ const orderSchema = new mongoose.Schema({
         type: String,
         enum: ['Order Placed', 'Processing', 'Quality Checked', 'Packed', 'Ready for Pickup', 'Completed', 'Cancelled'],
         default: 'Order Placed'
+    },
+    deliveryAddress: {
+        type: String,
+        required: true
     }
 }, {
     timestamps: true

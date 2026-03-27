@@ -9,10 +9,14 @@ const auth = require('../middleware/authMiddleware');
 // @access  Private
 router.post('/', auth, async (req, res) => {
     try {
-        const { productId, quantity } = req.body;
+        const { productId, quantity, deliveryAddress, deliveryFee, platformFee } = req.body;
 
-        if (!productId || !quantity) {
-            return res.status(400).json({ message: 'Product ID and quantity are required' });
+        if (!productId || quantity === undefined || !deliveryAddress) {
+            return res.status(400).json({ message: 'Product ID, quantity and delivery address are required' });
+        }
+
+        if (quantity <= 0) {
+            return res.status(400).json({ message: 'Quantity must be greater than zero' });
         }
 
         const product = await Product.findById(productId);
@@ -21,22 +25,26 @@ router.post('/', auth, async (req, res) => {
             return res.status(404).json({ message: 'Product not found' });
         }
 
-        if (product.verificationStatus !== 'verified') {
-            return res.status(400).json({ message: 'Product is not available for purchase yet.' });
+        if (product.verificationStatus === 'rejected') {
+            return res.status(400).json({ message: 'Product is rejected and not available for purchase.' });
         }
 
         if (quantity > product.quantityAvailable) {
             return res.status(400).json({ message: 'Not enough stock available' });
         }
 
-        const totalPrice = quantity * product.pricePerKg;
+        const itemPrice = quantity * product.pricePerKg;
+        const totalPrice = itemPrice + (Number(deliveryFee) || 0) + (Number(platformFee) || 0);
 
         const newOrder = new Order({
             buyer: req.user.id,
             farmer: product.farmer,
             product: productId,
             quantity,
-            totalPrice
+            deliveryFee: Number(deliveryFee) || 0,
+            platformFee: Number(platformFee) || 0,
+            totalPrice,
+            deliveryAddress
         });
 
         // Deduct from product stock immediately to prevent double selling
@@ -62,13 +70,34 @@ router.get('/farmer', auth, async (req, res) => {
         }
 
         const orders = await Order.find({ farmer: req.user.id })
-            .populate('buyer', 'name phone email')
-            .populate('product', 'productName pricePerKg unit')
+            .populate('buyer', 'name phone email address')
+            .populate('product', 'productName pricePerKg unit image selectedWeight')
             .sort({ createdAt: -1 });
 
         res.json(orders);
     } catch (error) {
         console.error('Error fetching farmer orders:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// @route   GET /api/orders/customer
+// @desc    Get all orders placed by a customer
+// @access  Private (Customer only)
+router.get('/customer', auth, async (req, res) => {
+    try {
+        if (req.user.role !== 'customer') {
+            return res.status(403).json({ message: 'Access denied.' });
+        }
+
+        const orders = await Order.find({ buyer: req.user.id })
+            .populate('farmer', 'name')
+            .populate('product', 'productName pricePerKg unit image')
+            .sort({ createdAt: -1 });
+
+        res.json(orders);
+    } catch (error) {
+        console.error('Error fetching customer orders:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 });

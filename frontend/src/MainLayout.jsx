@@ -10,6 +10,7 @@ const MainLayout = () => {
   const location = useLocation();
   const isCustomer = user?.role === "customer";
   const isCartPage = location.pathname === "/cart";
+  const isCheckoutPage = location.pathname === "/checkout";
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -18,7 +19,7 @@ const MainLayout = () => {
         <main style={{ flex: 1, minWidth: 0 }}>
           <Outlet />
         </main>
-        {isCustomer && !isCartPage && <CartSidebar />}
+        {isCustomer && !isCartPage && !isCheckoutPage && <CartSidebar />}
       </div>
       <Footer />
     </div>

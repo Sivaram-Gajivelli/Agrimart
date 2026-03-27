@@ -41,4 +41,25 @@ router.put("/update-name", auth, async (req, res) => {
 });
 
 
+// UPDATE USER ADDRESS
+router.put("/update-address", auth, async (req, res) => {
+  try {
+    const { address } = req.body;
+
+    if (!address) {
+      return res.status(400).json({ message: "Address is required" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { address },
+      { new: true }
+    ).select("-password");
+
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 module.exports = router;

@@ -31,15 +31,14 @@ const CartSidebar = () => {
 
     const totalItems = cart?.items?.length || 0;
     const totalPrice = cart?.items?.reduce((sum, item) => sum + (item.product?.pricePerKg * item.quantity), 0) || 0;
-    
-    const freeDeliveryThreshold = 499;
-    const remainingForFree = freeDeliveryThreshold - totalPrice;
 
     return (
         <div className="cart-sidebar-container">
             <div className="cart-sidebar-header">
                 <div style={{ textAlign: 'center', marginBottom: '15px' }}>
-                    <h2 style={{ color: 'var(--primary-dark)', fontSize: '1.4rem', margin: 0, fontWeight: '800', letterSpacing: '1px' }}>Agrimart Cart</h2>
+                    <h2 style={{ color: 'var(--primary-dark)', fontSize: '1.4rem', margin: 0, fontWeight: '800', letterSpacing: '1px' }}>
+                        Agrimart <span className="notranslate" translate="no">Cart</span>
+                    </h2>
                 </div>
                 
                 <div className="cart-summary-mini">
@@ -47,17 +46,6 @@ const CartSidebar = () => {
                         <span className="items-count" style={{ display: 'block', fontSize: '0.9rem' }}>{totalItems} {totalItems === 1 ? 'item' : 'items'}</span>
                         <span className="cart-total" style={{ fontSize: '1.2rem', fontWeight: '700' }}>₹{totalPrice.toFixed(2)}</span>
                     </div>
-
-                    {remainingForFree > 0 ? (
-                        <p style={{ fontSize: '0.8rem', color: '#565959', textAlign: 'center', margin: '5px 0' }}>
-                            Add items worth <strong>₹{remainingForFree.toFixed(2)}</strong> for FREE delivery
-                        </p>
-                    ) : (
-                        <p style={{ fontSize: '0.8rem', color: '#27ae60', textAlign: 'center', margin: '5px 0', fontWeight: '600' }}>
-                            ✓ Your order qualifies for FREE delivery!
-                        </p>
-                    )
-                    }
 
                     <button 
                         className="view-cart-btn" 
@@ -74,7 +62,7 @@ const CartSidebar = () => {
                             marginTop: '10px'
                         }}
                     >
-                        Go to Cart
+                        Go to <span className="notranslate" translate="no" style={{marginLeft: '4px'}}>Cart</span>
                     </button>
                 </div>
             </div>

@@ -43,7 +43,11 @@ const userSchema = new mongoose.Schema(
       default: false
     },
     mobileOTP: String,
-    mobileOTPExpires: Date
+    mobileOTPExpires: Date,
+    address: {
+      type: String,
+      required: false
+    }
   },
   { timestamps: true }
 );

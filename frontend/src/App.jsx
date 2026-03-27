@@ -25,7 +25,10 @@ import OrdersReceived from "./app/OrdersReceived";
 import PricePrediction from "./app/PricePrediction";
 import ProductDetails from "./app/ProductDetails";
 import Cart from "./app/Cart";
+import Checkout from "./app/Checkout";
 import CartSidebar from "./components/CartSidebar";
+import CustomerOrders from "./app/CustomerOrders";
+import ShippingPolicy from "./app/ShippingPolicy";
 
 function App() {
   return (
@@ -57,6 +60,9 @@ function App() {
               <Route path="/price-prediction" element={<PricePrediction />} />
               <Route path="/product/:id" element={<ProductDetails />} />
               <Route path="/cart" element={<Cart />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/orders" element={<CustomerOrders />} />
+              <Route path="/shipping-policy" element={<ShippingPolicy />} />
             </Route>
 
 

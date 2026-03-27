@@ -1,2 +1,11 @@
 Login attempt: [2026-03-15T19:01:15.255Z] email=8008760311, role=farmer, pw_len=8, hash_len=60, isMatch=true
 Login attempt: [2026-03-15T19:02:49.845Z] email=sivayaju2@gmail.com, role=customer, pw_len=8, hash_len=60, isMatch=true
+Login attempt: [2026-03-16T17:52:11.791Z] email=sivayaju2@gmail.com, role=customer, pw_len=8, hash_len=60, isMatch=true
+Login attempt: [2026-03-17T18:44:25.932Z] email=sivayaju2@gmail.com, role=customer, pw_len=8, hash_len=60, isMatch=true
+Login attempt: [2026-03-22T16:15:32.522Z] email=sivayaju2@gmail.com, role=customer, pw_len=8, hash_len=60, isMatch=true
+Login attempt: [2026-03-25T07:31:45.211Z] email=sivayaju2@gmail.com, role=customer, pw_len=8, hash_len=60, isMatch=true
+Login attempt: [2026-03-25T07:35:01.567Z] email=8008760311, role=farmer, pw_len=8, hash_len=60, isMatch=true
+Login attempt: [2026-03-25T07:37:36.820Z] email=sivaramgajivelli@gmail.com, role=retailer, pw_len=8, hash_len=60, isMatch=true
+Login attempt: [2026-03-25T17:47:03.819Z] email=sivayaju2@gmail.com, role=customer, pw_len=8, hash_len=60, isMatch=true
+Login attempt: [2026-03-25T18:46:59.235Z] email=8008760311, role=farmer, pw_len=8, hash_len=60, isMatch=true
+Login attempt: [2026-03-27T17:32:35.429Z] email=sivayaju2@gmail.com, role=customer, pw_len=8, hash_len=60, isMatch=true

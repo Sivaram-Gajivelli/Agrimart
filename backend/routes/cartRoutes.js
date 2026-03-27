@@ -93,4 +93,21 @@ router.delete('/:productId', protect, async (req, res) => {
     }
 });
 
+// @desc    Clear entire cart
+// @route   DELETE /api/cart/all/clear
+// @access  Private/Customer
+router.delete('/all/clear', protect, async (req, res) => {
+    try {
+        const cart = await Cart.findOne({ user: req.user.id });
+        if (!cart) return res.status(404).json({ message: 'Cart not found' });
+
+        cart.items = [];
+        await cart.save();
+        
+        res.json(cart);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
 module.exports = router;

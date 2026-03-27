@@ -72,10 +72,10 @@ const Cart = () => {
         <div className="cart-container">
             <div className="cart-layout">
                 <div className="cart-main">
-                    <h1>Shopping Cart</h1>
+                    <h1>Shopping <span className="notranslate" translate="no">Cart</span></h1>
                     {(!cart || cart.items.length === 0) ? (
                         <div className="empty-cart">
-                            <p>Your Agrimart cart is empty.</p>
+                            <p>Your Agrimart <span className="notranslate" translate="no">cart</span> is empty.</p>
                             <Link to="/" className="shop-link">Continue shopping</Link>
                         </div>
                     ) : (
@@ -84,14 +84,16 @@ const Cart = () => {
                                 <div key={item.product._id} className="cart-item">
                                     <div className="cart-item-image">
                                         <img 
-                                            src={getProductImage(item.product.productName) || "/placeholder.png"} 
+                                            src={getProductImage(item.product.productName) || item.product.image || "/placeholder.png"} 
                                             alt={item.product.productName} 
                                         />
                                     </div>
                                     <div className="cart-item-details">
                                         <div className="item-header">
                                             <h3>{item.product.productName}</h3>
-                                            <p className="item-price">₹{item.product.pricePerKg} / {item.product.unit}</p>
+                                            <p className="item-price" style={{ fontWeight: 'bold' }}>
+                                                ₹{(item.product.pricePerKg * item.quantity).toFixed(2)}
+                                            </p>
                                         </div>
                                         <p className="stock-info">In Stock</p>
                                         <p className="farmer-info">Sold by: <strong>{item.product.farmer?.name || "Verified Farmer"}</strong></p>
@@ -110,7 +112,14 @@ const Cart = () => {
                                                 </select>
                                             </div>
                                             <span className="separator">|</span>
-                                            <button onClick={() => handleRemove(item.product._id)} className="delete-btn">Delete</button>
+                                            <button onClick={() => handleRemove(item.product._id)} className="delete-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }} title="Delete">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d9534f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                                                </svg>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -128,11 +137,7 @@ const Cart = () => {
                             <div className="subtotal-info">
                                 <p>Subtotal ({calculateTotalItems()} items): <strong>₹{calculateSubtotal()}</strong></p>
                             </div>
-                            <div className="gift-hint">
-                                <input type="checkbox" id="gift" />
-                                <label htmlFor="gift">This order contains a gift</label>
-                            </div>
-                            <button className="proceed-btn" onClick={() => navigate('/orders')}>Proceed to Buy</button>
+                            <button className="proceed-btn" onClick={() => navigate('/checkout')}>Proceed to Buy</button>
                         </div>
                     </div>
                 )}
