@@ -42,6 +42,10 @@ const orderSchema = new mongoose.Schema({
     deliveryAddress: {
         type: String,
         required: true
+    },
+    cancellationReason: {
+        type: String,
+        default: ''
     }
 }, {
     timestamps: true

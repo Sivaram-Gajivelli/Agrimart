@@ -8,7 +8,7 @@ const protect = require('../middleware/authMiddleware');
 // @access  Private/Customer
 router.get('/', protect, async (req, res) => {
     try {
-        let cart = await Cart.findOne({ user: req.user.id }).populate('items.product');
+        let cart = await Cart.findOne({ user: req.user.id }).populate({ path: 'items.product', populate: { path: 'farmer', select: 'name' } });
         if (!cart) {
             cart = await Cart.create({ user: req.user.id, items: [] });
         }
@@ -43,7 +43,7 @@ router.post('/', protect, async (req, res) => {
             await cart.save();
         }
 
-        const updatedCart = await Cart.findOne({ user: req.user.id }).populate('items.product');
+        const updatedCart = await Cart.findOne({ user: req.user.id }).populate({ path: 'items.product', populate: { path: 'farmer', select: 'name' } });
         res.status(201).json(updatedCart);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -65,7 +65,7 @@ router.put('/:productId', protect, async (req, res) => {
         if (itemIndex > -1) {
             cart.items[itemIndex].quantity = Number(quantity);
             await cart.save();
-            const updatedCart = await Cart.findOne({ user: req.user.id }).populate('items.product');
+            const updatedCart = await Cart.findOne({ user: req.user.id }).populate({ path: 'items.product', populate: { path: 'farmer', select: 'name' } });
             return res.json(updatedCart);
         } else {
             res.status(404).json({ message: 'Product not found in cart' });
@@ -86,7 +86,7 @@ router.delete('/:productId', protect, async (req, res) => {
         cart.items = cart.items.filter(item => item.product.toString() !== req.params.productId);
         await cart.save();
         
-        const updatedCart = await Cart.findOne({ user: req.user.id }).populate('items.product');
+        const updatedCart = await Cart.findOne({ user: req.user.id }).populate({ path: 'items.product', populate: { path: 'farmer', select: 'name' } });
         res.json(updatedCart);
     } catch (error) {
         res.status(500).json({ message: error.message });

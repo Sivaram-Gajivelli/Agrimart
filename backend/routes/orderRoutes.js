@@ -3,6 +3,7 @@ const router = express.Router();
 const Order = require('../models/orderModel');
 const Product = require('../models/productModel');
 const auth = require('../middleware/authMiddleware');
+const { sendOrderConfirmationEmail, sendOrderCancellationEmail } = require('../utils/emailService');
 
 // @route   POST /api/orders
 // @desc    Place a new order
@@ -52,6 +53,18 @@ router.post('/', auth, async (req, res) => {
         await product.save();
 
         const savedOrder = await newOrder.save();
+
+        // Send Email Async
+        if (req.user && req.user.email) {
+            sendOrderConfirmationEmail(req.user.email, req.user.name || 'Customer', {
+                trackingId: savedOrder._id,
+                productName: product.productName,
+                quantity: quantity,
+                unit: product.unit || 'kg',
+                totalPrice: totalPrice
+            }).catch(err => console.error("Email failed:", err));
+        }
+
         res.status(201).json(savedOrder);
 
     } catch (error) {
@@ -135,6 +148,58 @@ router.put('/:id/status', auth, async (req, res) => {
         res.json(order);
     } catch (error) {
         console.error('Error updating order status:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// @route   PUT /api/orders/:id/cancel
+// @desc    Cancel an order by customer
+// @access  Private (Customer only)
+router.put('/:id/cancel', auth, async (req, res) => {
+    try {
+        if (req.user.role !== 'customer') {
+            return res.status(403).json({ message: 'Access denied. Only customers can cancel.' });
+        }
+
+        const { reason } = req.body;
+        const order = await Order.findById(req.params.id).populate('product');
+
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        if (order.buyer.toString() !== req.user.id.toString()) {
+            return res.status(401).json({ message: 'Not authorized to cancel this order' });
+        }
+
+        if (!['Order Placed', 'Processing'].includes(order.trackingStatus)) {
+            return res.status(400).json({ message: 'Order cannot be cancelled at this stage. Please contact support.' });
+        }
+
+        order.trackingStatus = 'Cancelled';
+        order.cancellationReason = reason || 'Customer Requested';
+
+        // Restore inventory
+        if (order.product) {
+            order.product.quantityAvailable += order.quantity;
+            await order.product.save();
+        }
+
+        await order.save();
+
+        // Send Email Async
+        if (req.user && req.user.email) {
+            sendOrderCancellationEmail(req.user.email, req.user.name || 'Customer', {
+                trackingId: order._id,
+                productName: order.product?.productName || 'Unknown Product',
+                quantity: order.quantity,
+                unit: order.product?.unit || 'kg',
+            }, order.cancellationReason).catch(err => console.error("Email failed:", err));
+        }
+
+        res.json(order);
+    } catch (error) {
+        console.error('Error cancelling order:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 });

@@ -19,7 +19,7 @@ const MainLayout = () => {
         <main style={{ flex: 1, minWidth: 0 }}>
           <Outlet />
         </main>
-        {isCustomer && !isCartPage && !isCheckoutPage && <CartSidebar />}
+        {isCustomer && !isCartPage && !isCheckoutPage && location.pathname !== '/orders' && <CartSidebar />}
       </div>
       <Footer />
     </div>

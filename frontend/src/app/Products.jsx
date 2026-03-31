@@ -128,21 +128,18 @@ const Products = () => {
     useEffect(() => {
         const fetchMarketplace = async () => {
             try {
-                const response = await fetch('http://localhost:3000/api/products/marketplace');
-                if (!response.ok) throw new Error('Failed to fetch marketplace');
+                let response;
+                if (searchQuery) {
+                    response = await fetch(`http://localhost:3000/api/products/search?q=${encodeURIComponent(searchQuery)}`);
+                } else {
+                    response = await fetch('http://localhost:3000/api/products/marketplace');
+                }
+                
+                if (!response.ok) throw new Error('Failed to fetch products');
                 let data = await response.json();
                 
                 if (categoryFilter) {
                     data = data.filter(p => p.category === categoryFilter);
-                }
-
-                if (searchQuery) {
-                    const query = searchQuery.toLowerCase();
-                    data = data.filter(p => 
-                        p.productName.toLowerCase().includes(query) || 
-                        (p.description && p.description.toLowerCase().includes(query)) ||
-                        p.category.toLowerCase().includes(query)
-                    );
                 }
 
                 setProducts(data);

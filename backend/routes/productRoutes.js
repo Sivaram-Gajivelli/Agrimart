@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/productModel');
 const auth = require('../middleware/authMiddleware');
+const { translate } = require('@vitalets/google-translate-api');
 
 // @route   POST /api/products
 // @desc    Create a new product listing
@@ -127,6 +128,55 @@ router.delete('/:id', auth, async (req, res) => {
         res.json({ message: 'Product removed' });
     } catch (error) {
         console.error('Error deleting product:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// @route   GET /api/products/search
+// @desc    Search products with auto-translation to English
+// @access  Public
+router.get('/search', async (req, res) => {
+    try {
+        const { q } = req.query;
+        if (!q) {
+            return res.json([]);
+        }
+
+        let englishQuery = q;
+        try {
+            const translation = await translate(q, { to: 'en' });
+            englishQuery = translation.text;
+            console.log(`Translated "${q}" -> "${englishQuery}"`);
+        } catch (err) {
+            console.error('Translation error:', err);
+        }
+
+        const keywords = new RegExp(englishQuery, 'i');
+
+        const products = await Product.find({
+            $and: [
+                {
+                    $or: [
+                        { productName: keywords },
+                        { description: keywords },
+                        { category: keywords }
+                    ]
+                },
+                {
+                    $or: [
+                        { verificationStatus: { $in: ['verified', 'pending', 'quality assessment'] } },
+                        { verificationStatus: { $exists: false } },
+                        { verificationStatus: null }
+                    ]
+                }
+            ]
+        })
+        .populate('farmer', 'name email phone')
+        .sort({ createdAt: -1 });
+
+        res.json(products);
+    } catch (error) {
+        console.error('Error fetching search results:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 });

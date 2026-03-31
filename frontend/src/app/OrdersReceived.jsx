@@ -161,7 +161,7 @@ const OrdersReceived = () => {
                                                 {order.trackingStatus}
                                             </span>
                                         </div>
-                                        <p style={{ color: '#64748b', margin: '0 0 5px 0' }}>{order.isProductOnly ? 'Product ID' : 'Order ID'}: <span style={{ fontFamily: 'monospace' }}>{order.isProductOnly ? order.product?._id : order._id}</span></p>
+                                        <p style={{ color: '#64748b', margin: '0 0 5px 0' }}>{order.isProductOnly ? 'Product ID' : 'Tracking Id'}: <span style={{ fontFamily: 'monospace' }}>{order.isProductOnly ? order.product?._id : order._id}</span></p>
                                         <p style={{ color: '#64748b', margin: 0 }}>{order.isProductOnly ? 'Listed on' : 'Placed on'}: {new Date(order.createdAt).toLocaleDateString()}</p>
                                     </div>
                                 </div>
