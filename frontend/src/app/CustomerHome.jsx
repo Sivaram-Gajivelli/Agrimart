@@ -155,7 +155,7 @@ const CustomerHome = () => {
                             <h3 style={{ fontSize: '1.1rem', margin: '0 0 5px 0' }}>{product.productName}</h3>
                             <p style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{product.manualLocation} • {product.farmer?.name || "Farmer"}</p>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--primary-dark)' }}>₹{product.pricePerKg}/{product.unit}</span>
+                                <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--primary-dark)' }}>₹{parseFloat(product.pricePerKg).toFixed(2)}/{product.unit}</span>
                                 <button 
                                     style={{ background: 'var(--primary)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 'bold' }}
                                     onClick={() => handleAddToCart(product)}

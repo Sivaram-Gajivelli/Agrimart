@@ -24,8 +24,13 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["customer", "farmer", "retailer"],
+      enum: ["customer", "farmer", "retailer", "admin", "delivery_partner"],
       required: true
+    },
+    status: {
+      type: String,
+      enum: ["pending", "active", "blocked", "rejected"],
+      default: "active"
     },
 
     // 🔹 Email Verification

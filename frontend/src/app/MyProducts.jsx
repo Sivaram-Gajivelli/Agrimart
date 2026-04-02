@@ -150,7 +150,7 @@ const MyProducts = () => {
                                     <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '10px', marginBottom: '15px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                             <span style={{ color: '#64748b' }}>Price:</span>
-                                            <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>₹{product.pricePerKg} / {product.unit}</span>
+                                            <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>₹{parseFloat(product.pricePerKg).toFixed(2)} / {product.unit}</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                             <span style={{ color: '#64748b' }}>Stock:</span>

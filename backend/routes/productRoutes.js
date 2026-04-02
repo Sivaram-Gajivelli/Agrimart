@@ -235,6 +235,20 @@ router.post('/:id/reviews', auth, async (req, res) => {
             return res.status(404).json({ message: 'Product not found' });
         }
 
+        // Check if user has a completed order for this product
+        const Order = require('../models/orderModel');
+        const hasCompletedOrder = await Order.findOne({
+            buyer: req.user.id,
+            product: req.params.id,
+            trackingStatus: 'Completed'
+        });
+
+        if (!hasCompletedOrder) {
+            return res.status(403).json({ 
+                message: 'You can only review products you have purchased and received.' 
+            });
+        }
+
         const alreadyReviewed = product.reviews.find(
             (r) => r.user.toString() === req.user.id.toString()
         );

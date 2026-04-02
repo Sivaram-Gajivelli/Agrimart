@@ -10,7 +10,10 @@ import customerBg from "../assets/images/customer_login.png";
 import farmerBg from "../assets/images/slide1.jpg";
 import retailerBg from "../assets/images/retailer_login.png";
 
-// SVG Icons extracted outside the component to prevent unstable nested component errors
+/**
+ * SVG Icons for password visibility toggling, extracted outside the component 
+ * to ensure stability and performance.
+ */
 const EyeIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -29,7 +32,10 @@ export default function Signup() {
   const { role } = useParams();
   const safeRole = role || "customer";
 
-  // We removed redirect-based email verification in favor of inline OTP
+  /**
+   * State management for email and mobile verification status, 
+   * including OTP delivery and cooldown timers.
+   */
   const [emailVerified, setEmailVerified] = useState(false);
 
   const [otp, setOtp] = useState("");
@@ -66,7 +72,9 @@ export default function Signup() {
 
   const [passwordError, setPasswordError] = useState("");
 
-  // Role taglines
+  /**
+   * UI mapping for role-specific taglines and backgrounds.
+   */
   const roleTaglines = {
     customer: "Fresh from farms, delivered to your doorstep.",
     farmer: "Sell smarter. Earn better. Grow digitally.",
@@ -86,11 +94,30 @@ export default function Signup() {
     "Connecting farmers, retailers, and consumers in one digital marketplace.";
 
   const handleChange = (e) => {
-    const updatedForm = { ...form, [e.target.name]: e.target.value };
+    let { name, value } = e.target;
+
+    // Phone number filtering: allow only digits and max 10 characters
+    if (name === "phone") {
+      value = value.replace(/\D/g, "").slice(0, 10);
+    }
+
+    const updatedForm = { ...form, [name]: value };
     setForm(updatedForm);
 
-    // Live password strength check
-    if (e.target.name === "password" || e.target.name === "confirmPassword") {
+    // Reset verification states if email or phone changes
+    if (name === "email") {
+      setEmailOtpSent(false);
+      setEmailVerified(false);
+    }
+    if (name === "phone") {
+      setOtpSent(false);
+      setMobileVerified(false);
+    }
+
+    /**
+     * Real-time password strength and matching validation.
+     */
+    if (name === "password" || name === "confirmPassword") {
       const p = updatedForm.password;
 
       if (p.length > 0) {
@@ -117,6 +144,13 @@ export default function Signup() {
         return;
       }
 
+      // Email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(form.email)) {
+        toast.error("Please enter a valid email address");
+        return;
+      }
+
       const res = await fetch("http://localhost:3000/api/auth/send-email-verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -128,7 +162,6 @@ export default function Signup() {
 
       if (res.ok) {
         toast.success(`Verification mail sent to ${form.email}`);
-        console.log("📧 Email OTP received from backend:", data.otp);
         setEmailOtpSent(true);
       } else {
         toast.error(data.message || "Failed to send verification");
@@ -146,6 +179,12 @@ export default function Signup() {
         return;
       }
 
+      // Phone format validation (10 digits)
+      if (!/^\d{10}$/.test(form.phone)) {
+        toast.error("Please enter a valid 10-digit mobile number");
+        return;
+      }
+
       const res = await fetch("http://localhost:3000/api/auth/send-mobile-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -157,8 +196,7 @@ export default function Signup() {
 
       if (res.ok) {
         toast.success(data.message);
-        console.log("📱 Mobile OTP received from backend:", data.otp);
-        setOtpSent(true);   // 👈 show OTP field
+        setOtpSent(true);
         setResendCooldown(30);
       } else {
         toast.error(data.message);
@@ -206,7 +244,7 @@ export default function Signup() {
 
       toast.success(res.message);
 
-      // 🔥 Redirect after short delay
+      // Redirect to the role-specific login page after successful registration
       setTimeout(() => {
         window.location.href = `/login/${safeRole}`;
       }, 1500);
@@ -224,10 +262,10 @@ export default function Signup() {
     passwordError ||
     (!form.email.trim() && !form.phone.trim()) ||
 
-    // If email entered but not verified
+    // Require verification if email is provided
     (form.email.trim() && !emailVerified) ||
 
-    // If phone entered but not verified
+    // Require verification if phone is provided
     (form.phone.trim() && !mobileVerified);
 
   return (
@@ -269,8 +307,8 @@ export default function Signup() {
                 name="email"
                 type="email"
                 placeholder="Email"
+                value={form.email}
                 onChange={handleChange}
-                disabled={emailVerified}
               />
 
               {!emailVerified && (
@@ -290,8 +328,7 @@ export default function Signup() {
                 <input
                   placeholder="Enter Email OTP"
                   onChange={(e) => {
-                    // Temporary quick check, standard react state would be better
-                    // but passing to verify-email-otp endpoint directly.
+                    // Update temporary OTP value for verification
                     window.tempEmailOtp = e.target.value;
                   }}
                 />
@@ -328,8 +365,8 @@ export default function Signup() {
               <input
                 name="phone"
                 placeholder="Mobile Number"
+                value={form.phone}
                 onChange={handleChange}
-                disabled={mobileVerified}
               />
 
               {!mobileVerified && (

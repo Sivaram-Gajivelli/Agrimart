@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import "./assets/styles/App.css";
@@ -29,6 +29,18 @@ import Checkout from "./app/Checkout";
 import CartSidebar from "./components/CartSidebar";
 import CustomerOrders from "./app/CustomerOrders";
 import ShippingPolicy from "./app/ShippingPolicy";
+
+/**
+ * Admin component imports for the administration dashboard and related management views.
+ */
+import AdminLogin from "./admin/AdminLogin";
+import AdminLayout from "./admin/AdminLayout";
+import AdminDashboard from "./admin/AdminDashboard";
+import AdminUsers from "./admin/AdminUsers";
+import AdminProducts from "./admin/AdminProducts";
+import AdminOrders from "./admin/AdminOrders";
+import AdminHubs from "./admin/AdminHubs";
+import AdminSettings from "./admin/AdminSettings";
 
 function App() {
   return (
@@ -71,6 +83,18 @@ function App() {
             <Route path="/signup/:role" element={<Signup />} />
             <Route path="/forgot-password/verify" element={<ForgotPasswordVerify />} />
             <Route path="/forgot-password/reset" element={<ForgotPasswordReset />} />
+
+            {/* Admin Authentication and Dashboard Routes */}
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="products" element={<AdminProducts />} />
+              <Route path="orders" element={<AdminOrders />} />
+              <Route path="hubs" element={<AdminHubs />} />
+              <Route path="settings" element={<AdminSettings />} />
+            </Route>
           </Routes>
         </CartProvider>
       </AuthProvider>

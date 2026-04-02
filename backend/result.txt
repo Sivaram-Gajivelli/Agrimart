@@ -1,5 +1,0 @@
-[dotenv@17.3.1] injecting env (6) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
-Error seeding reviews: MongooseError: Operation `products.find()` buffering timed out after 10000ms
-    at Timeout._onTimeout (C:\Users\sivay\Desktop\Projects\Final year Batch 14 Project\Agrimart\backend\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:131:25)
-    at listOnTimeout (node:internal/timers:594:17)
-    at process.processTimers (node:internal/timers:529:7)

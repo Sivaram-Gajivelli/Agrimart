@@ -119,7 +119,7 @@ const ProductDetails = () => {
             <span className="review-count">{product.numReviews} ratings</span>
           </div>
           <hr />
-          <div className="price-tag">₹{product.pricePerKg} / {product.unit}</div>
+          <div className="price-tag">₹{parseFloat(product.pricePerKg).toFixed(2)} / {product.unit}</div>
           <div className="producer-info">
             Farmer: <strong>{product.farmer?.name || "Verified Farmer"}</strong>
             <br />
@@ -180,8 +180,13 @@ const ProductDetails = () => {
               </div>
             ))}
           </div>
-          <hr />
-          <div className="submit-review-form">
+          <div className="histogram-row-extra" style={{ marginTop: '20px', fontSize: '0.9rem', color: '#666' }}>
+            91% of customers recommend this product.
+          </div>
+        </div>
+
+        <div className="reviews-list-container">
+          <div className="submit-review-form" style={{ marginBottom: '40px', padding: '20px', border: '1px solid #eee', borderRadius: '8px', background: '#fafafa' }}>
             <h3>Review this product</h3>
             <p>Share your thoughts with other customers</p>
             <form onSubmit={handleSubmitReview}>
@@ -205,7 +210,7 @@ const ProductDetails = () => {
                   rows="4" 
                   value={comment} 
                   onChange={(e) => setComment(e.target.value)}
-                  placeholder="What did you like or dislike?"
+                  placeholder="What did you like or dislike? (Only verified purchasers can submit reviews)"
                   required
                 ></textarea>
               </div>
@@ -214,9 +219,7 @@ const ProductDetails = () => {
               </button>
             </form>
           </div>
-        </div>
 
-        <div className="reviews-list-container">
           <h2>Top reviews</h2>
           <div className="reviews-list">
             {product.reviews.length === 0 ? (

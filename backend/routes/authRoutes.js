@@ -11,9 +11,12 @@ const auth = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-// =======================
-// RATE LIMITING
-// =======================
+/**
+ * Authentication management and user authorization services.
+ * Handles user registration, verification, login, and password reset logic.
+ */
+
+// Rate limiting configurations for security
 
 // Bruteforce protection for login and register (max 10 requests per 10 minutes)
 const authLimiter = rateLimit({
@@ -45,9 +48,9 @@ const generateOTP = () => {
 
 
 
-// =======================
-// REGISTER
-// =======================
+/**
+ * User registration logic, including input validation and existing user checks.
+ */
 const registerValidation = [
   body("name").trim().notEmpty().withMessage("Name is required").isLength({ min: 3 }).withMessage("Name must be at least 3 characters long"),
   body("email").optional({ checkFalsy: true }).isEmail().withMessage("Must be a valid email").normalizeEmail(),
@@ -110,7 +113,7 @@ router.post("/register", authLimiter, registerValidation, async (req, res) => {
         if (email) {
           const verificationURL = `http://localhost:3000/api/auth/verify/${verificationToken}`;
 
-          // 🔥 Async send mail
+          // Asynchronous email delivery for account verification
           transporter.sendMail({
             from: process.env.EMAIL_USER,
             to: email,
@@ -192,9 +195,9 @@ router.post("/register", authLimiter, registerValidation, async (req, res) => {
 });
 
 
-// =======================
-// EMAIL VERIFY
-// =======================
+/**
+ * Email account verification using a unique verification token.
+ */
 router.get("/verify/:token", async (req, res) => {
   try {
     const user = await userModel.findOne({
@@ -214,7 +217,7 @@ router.get("/verify/:token", async (req, res) => {
 
     await user.save();
 
-    // 🔥 Redirect to frontend signup page with success flag
+    // Redirect to frontend signup page with success status
     return res.redirect(
       `http://localhost:5173/signup/${user.role}?verified=success`
     );
@@ -228,12 +231,16 @@ router.get("/verify/:token", async (req, res) => {
 });
 
 
-// =======================
-// SEND / RESEND EMAIL OTP
-// =======================
+/**
+ * Service to generate and send verification OTPs via email.
+ */
 router.post("/send-email-verify", otpLimiter, async (req, res) => {
   try {
     const { email } = req.body;
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: "Please provide a valid email address." });
+    }
 
     // We can just send an OTP via email instead of creating a user in DB first.
     // However, if the user doesn't exist, we should let them proceed.
@@ -253,7 +260,7 @@ router.post("/send-email-verify", otpLimiter, async (req, res) => {
     );
 
     // Actually sending an email with just an OTP:
-    // 🔥 Removed 'await' here so the API responds to the frontend instantly without waiting for the SMTP server
+    // Asynchronous email delivery for OTP verification
     transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
@@ -266,7 +273,6 @@ router.post("/send-email-verify", otpLimiter, async (req, res) => {
       `
     }).catch(err => console.error("Background Email Sending Failed:", err));
 
-    console.log("📧 Email OTP for", email, "is:", otp);
     return res.json({ message: "Verification OTP sent successfully", otp });
 
   } catch (err) {
@@ -276,9 +282,9 @@ router.post("/send-email-verify", otpLimiter, async (req, res) => {
 });
 
 
-// =======================
-// VERIFY EMAIL OTP
-// =======================
+/**
+ * Verification of the OTP code sent to the user's email.
+ */
 router.post("/verify-email-otp", async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -303,15 +309,15 @@ router.post("/verify-email-otp", async (req, res) => {
   }
 });
 
-// =======================
-// SEND / RESEND MOBILE OTP
-// =======================
+/**
+ * Service to generate and send verification OTPs via mobile.
+ */
 router.post("/send-mobile-otp", otpLimiter, async (req, res) => {
   try {
     const { phone } = req.body;
 
-    if (!phone) {
-      return res.status(400).json({ message: "Phone number is required." });
+    if (!phone || !/^\d{10}$/.test(phone)) {
+      return res.status(400).json({ message: "Please provide a valid 10-digit mobile number." });
     }
 
     let user = await userModel.findOne({ phone });
@@ -320,7 +326,7 @@ router.post("/send-mobile-otp", otpLimiter, async (req, res) => {
       return res.status(400).json({ message: "Phone number is already registered and verified." });
     }
 
-    // 🔥 Prevent OTP spam (30 sec cooldown)
+    // Rate limit OTP requests to prevent spam (30 second cooldown)
     if (
       user && user.mobileOTPExpires &&
       Date.now() < user.mobileOTPExpires - 270000 // first 30 sec blocked
@@ -339,8 +345,6 @@ router.post("/send-mobile-otp", otpLimiter, async (req, res) => {
       { upsert: true, new: true }
     );
 
-    console.log("📱 Mobile OTP for", phone, "is:", otp);
-
     return res.json({ message: "OTP sent successfully", otp });
 
   } catch (err) {
@@ -350,9 +354,9 @@ router.post("/send-mobile-otp", otpLimiter, async (req, res) => {
 });
 
 
-// =======================
-// VERIFY MOBILE OTP
-// =======================
+/**
+ * Verification of the OTP code sent to the user's mobile device.
+ */
 router.post("/verify-mobile-otp", async (req, res) => {
   try {
     const { phone, otp } = req.body;
@@ -407,9 +411,9 @@ router.get("/check-verification", async (req, res) => {
 
 
 
-// =======================
-// LOGIN
-// =======================
+/**
+ * User authentication and session establishment.
+ */
 const loginValidation = [
   body("email").trim().notEmpty().withMessage("Email/Phone is required"),
   body("password").notEmpty().withMessage("Password is required"),
@@ -463,10 +467,6 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
 
     // Compare passwords
     const isMatch = await bcrypt.compare(password, user.password);
-    const logMsg = `Login attempt: [${new Date().toISOString()}] email=${email}, role=${role}, pw_len=${password.length}, hash_len=${user.password.length}, isMatch=${isMatch}\n`;
-    try { require('fs').appendFileSync('C:/Users/sivay/Desktop/Projects/Final year Batch 14 Project/Agrimart/backend/login_debug.log', logMsg); } catch(e) {}
-    console.log(logMsg);
-    
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
@@ -511,9 +511,9 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
   }
 });
 
-// =======================
-// FORGOT PASSWORD - SEND OTP
-// =======================
+/**
+ * Initiates the password recovery process by sending an OTP.
+ */
 router.post("/forgot-password/send-otp", otpLimiter, async (req, res) => {
   try {
     const { contact, role } = req.body; // contact can be email or phone
@@ -561,7 +561,6 @@ router.post("/forgot-password/send-otp", otpLimiter, async (req, res) => {
         `
       }).catch(err => console.error("Background Password Reset Email Failed:", err));
 
-      console.log("📧 Password Reset OTP for", contact, "is:", otp);
       return res.json({ message: "Password reset OTP sent to your email", otp });
     } else {
       // It's a phone number, log to console for now
@@ -575,9 +574,9 @@ router.post("/forgot-password/send-otp", otpLimiter, async (req, res) => {
   }
 });
 
-// =======================
-// FORGOT PASSWORD - VERIFY OTP
-// =======================
+/**
+ * Verifies the password recovery OTP.
+ */
 router.post("/forgot-password/verify-otp", async (req, res) => {
   try {
     const { contact, otp } = req.body;
@@ -607,9 +606,9 @@ router.post("/forgot-password/verify-otp", async (req, res) => {
   }
 });
 
-// =======================
-// FORGOT PASSWORD - RESET
-// =======================
+/**
+ * Resets the user's password after successful OTP verification.
+ */
 const passwordResetValidation = [
   body("newPassword")
     .isLength({ min: 8 }).withMessage("Password must be at least 8 characters long")

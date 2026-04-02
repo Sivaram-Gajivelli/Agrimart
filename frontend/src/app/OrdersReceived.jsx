@@ -189,7 +189,7 @@ const OrdersReceived = () => {
                                     <div>
                                         <div style={{ fontSize: '0.9rem', color: '#64748b' }}>{order.isProductOnly ? 'Price' : 'Total Earned'}</div>
                                         <div style={{ fontWeight: 'bold', fontSize: '1.3rem', color: 'var(--primary)' }}>
-                                            {order.isProductOnly ? `₹${order.product?.pricePerKg}/${order.product?.unit}` : `₹${order.totalPrice}`}
+                                            {order.isProductOnly ? `₹${parseFloat(order.product?.pricePerKg).toFixed(2)}/${order.product?.unit}` : `₹${parseFloat(order.totalPrice).toFixed(2)}`}
                                         </div>
                                     </div>
                                 </div>

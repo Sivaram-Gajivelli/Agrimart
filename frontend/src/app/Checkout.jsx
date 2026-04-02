@@ -39,6 +39,7 @@ const Checkout = () => {
     const [loading, setLoading] = useState(false);
     const [deliveryData, setDeliveryData] = useState({});
     const [calculatingDelivery, setCalculatingDelivery] = useState(false);
+    const [hubs, setHubs] = useState([]);
 
     const API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjQ4NmIzNzMzZmRkNzQ4M2Y4MTZhNDlmZWFmMDkwYzMyIiwiaCI6Im11cm11cjY0In0=";
 
@@ -56,19 +57,36 @@ const Checkout = () => {
         }
     };
 
-    const HUBS = [
-        { name: "Visakhapatnam", coordinates: [83.218481, 17.686815] },
-        { name: "Vizianagaram", coordinates: [83.40149, 18.114757] },
-        { name: "Rajahmundry", coordinates: [81.804034, 17.000538] },
-        { name: "Kakinada", coordinates: [82.2475, 16.9891] },
-        { name: "Vijayawada", coordinates: [80.648015, 16.506174] },
-        { name: "Guntur", coordinates: [80.43654, 16.306652] },
-        { name: "Nellore", coordinates: [79.986456, 14.442598] },
-        { name: "Tirupati", coordinates: [79.419179, 13.628755] },
-        { name: "Kurnool", coordinates: [78.037279, 15.828125] },
-        { name: "Kadapa", coordinates: [78.824167, 14.467377] },
-        { name: "Anantapur", coordinates: [77.600591, 14.681887] }
-    ];
+    // Fetch hubs from database
+    useEffect(() => {
+        const fetchHubs = async () => {
+            try {
+                const res = await axios.get('/api/admin/hubs/public');
+                if (res.data && res.data.length > 0) {
+                    setHubs(res.data.map(h => ({
+                        name: h.name,
+                        coordinates: [h.longitude, h.latitude]
+                    })));
+                }
+            } catch (err) {
+                // Fallback to hardcoded hubs if db fetch fails
+                setHubs([
+                    { name: "Visakhapatnam", coordinates: [83.218481, 17.686815] },
+                    { name: "Vizianagaram",  coordinates: [83.401490, 18.114757] },
+                    { name: "Rajahmundry",   coordinates: [81.804034, 17.000538] },
+                    { name: "Kakinada",      coordinates: [82.247500, 16.989100] },
+                    { name: "Vijayawada",    coordinates: [80.648015, 16.506174] },
+                    { name: "Guntur",        coordinates: [80.436540, 16.306652] },
+                    { name: "Nellore",       coordinates: [79.986456, 14.442598] },
+                    { name: "Tirupati",      coordinates: [79.419179, 13.628755] },
+                    { name: "Kurnool",       coordinates: [78.037279, 15.828125] },
+                    { name: "Kadapa",        coordinates: [78.824167, 14.467377] },
+                    { name: "Anantapur",     coordinates: [77.600591, 14.681887] },
+                ]);
+            }
+        };
+        fetchHubs();
+    }, []);
 
     const getHaversineDistance = (coords1, coords2) => {
         const toRad = p => p * Math.PI / 180;
@@ -102,7 +120,7 @@ const Checkout = () => {
 
     useEffect(() => {
         const calculateDelivery = async () => {
-            if (!cart || !cart.items || cart.items.length === 0 || !address.trim() || isChangingAddress) {
+            if (!cart || !cart.items || cart.items.length === 0 || !address.trim() || isChangingAddress || hubs.length === 0) {
                 return;
             }
             
@@ -115,7 +133,7 @@ const Checkout = () => {
                 let nearestHub = null;
                 let minDistance = Infinity;
                 
-                for (const hub of HUBS) {
+                for (const hub of hubs) {
                     const dist = getHaversineDistance(buyerCoords, hub.coordinates);
                     if (dist < minDistance) {
                         minDistance = dist;
@@ -161,7 +179,7 @@ const Checkout = () => {
         
         const timeoutId = setTimeout(calculateDelivery, 1500);
         return () => clearTimeout(timeoutId);
-    }, [cart, address, isChangingAddress]);
+    }, [cart, address, isChangingAddress, hubs]);
 
     useEffect(() => {
         if (user && user.address) {
@@ -228,13 +246,13 @@ const Checkout = () => {
         setLoading(true);
         try {
             if (address !== user.address) {
-                await axios.put('http://localhost:3000/api/user/update-address', { address }, { withCredentials: true });
-            }
+                    await axios.put('/api/user/update-address', { address }, { withCredentials: true });
+                }
 
-            const orderPromises = validItems.map(item => {
-                const orderQty = Math.min(item.quantity, item.product.quantityAvailable);
-                
-                return axios.post('http://localhost:3000/api/orders', {
+                const orderPromises = validItems.map(item => {
+                    const orderQty = Math.min(item.quantity, item.product.quantityAvailable);
+                    
+                    return axios.post('/api/orders', {
                     productId: item.product._id,
                     quantity: orderQty,
                     deliveryAddress: address,
@@ -244,7 +262,7 @@ const Checkout = () => {
             });
 
             await Promise.all(orderPromises);
-            await axios.delete('http://localhost:3000/api/cart/all/clear', { withCredentials: true });
+            await axios.delete('/api/cart/all/clear', { withCredentials: true });
 
             toast.success(outOfStockItems.length > 0 ? 'Order placed for available items!' : 'Order placed successfully!');
             await refreshCart();

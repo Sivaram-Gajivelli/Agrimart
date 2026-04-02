@@ -1,0 +1,104 @@
+.admin-dashboard {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-page-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 25px;
+  color: #1a1e23;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+}
+
+.stat-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+}
+
+.stat-info h3 {
+  font-size: 13px;
+  color: #888;
+  margin: 0 0 5px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #333;
+  margin: 0;
+}
+
+/* Colors for specific icons - Tailwind style */
+.bg-green-100 { background-color: #d1fae5; }
+.text-green-600 { color: #059669; }
+
+.bg-blue-100 { background-color: #dbeafe; }
+.text-blue-600 { color: #2563eb; }
+
+.bg-purple-100 { background-color: #ede9fe; }
+.text-purple-600 { color: #7c3aed; }
+
+.bg-yellow-100 { background-color: #fef08a; }
+.text-yellow-600 { color: #ca8a04; }
+
+.bg-emerald-100 { background-color: #a7f3d0; }
+.text-emerald-600 { color: #059669; }
+
+.bg-orange-100 { background-color: #ffedd5; }
+.text-orange-600 { color: #ea580c; }
+
+.bg-red-100 { background-color: #fee2e2; }
+.text-red-600 { color: #dc2626; }
+
+.bg-indigo-100 { background-color: #e0e7ff; }
+.text-indigo-600 { color: #4f46e5; }
+
+/* Charts Area */
+.charts-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 20px;
+}
+
+.chart-box {
+  background: #fff;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+}
+
+.chart-box h2 {
+  font-size: 16px;
+  color: #333;
+  margin: 0 0 20px 0;
+  font-weight: 600;
+}
