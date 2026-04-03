@@ -57,6 +57,10 @@ h6 {
   color: var(--text-dark);
 }
 
+h3, .product-name, .capitalize {
+  text-transform: capitalize !important;
+}
+
 a {
   text-decoration: none;
   color: inherit;

@@ -38,7 +38,7 @@ const ProductCard = ({ product }) => {
         </span>
       );
     }
-    return <div className="stars-small notranslate" translate="no">{stars} <span className="rating-num">({product.numReviews || 0})</span></div>;
+    return <div className="stars-small">{stars} <span className="rating-num">({product.numReviews || 0})</span></div>;
   };
 
   return (

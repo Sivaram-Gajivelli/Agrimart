@@ -59,8 +59,26 @@ const OrdersReceived = () => {
             const ordersData = await ordersRes.json();
             const productsData = await productsRes.json();
 
+            // Flatten items into separated virtual order lines for the dashboard
+            const flattenedOrders = [];
+            ordersData.forEach(order => {
+                if (order.items && order.items.length > 0) {
+                    order.items.forEach(item => {
+                        flattenedOrders.push({
+                            ...order, // Inherit order metadata (like trackingStatus, createdAt, _id, buyer)
+                            _id: order._id, 
+                            product: item.product,
+                            quantity: item.quantity,
+                            pricePerKg: item.pricePerKg,
+                            totalPrice: item.itemTotal, // Map itemTotal -> totalPrice for UI logic
+                            isProductOnly: false
+                        });
+                    });
+                }
+            });
+
             // Get product IDs that have existing orders
-            const orderedProductIds = new Set(ordersData.map(o => o.product?._id?.toString()));
+            const orderedProductIds = new Set(flattenedOrders.map(o => o.product?._id?.toString()));
             
             // Create placeholders for products without orders
             const unorderedItems = productsData
@@ -77,7 +95,7 @@ const OrdersReceived = () => {
                 }));
 
             // Combine and sort by date descending
-            const combinedData = [...ordersData, ...unorderedItems].sort(
+            const combinedData = [...flattenedOrders, ...unorderedItems].sort(
                 (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
             );
             

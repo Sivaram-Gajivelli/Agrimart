@@ -27,9 +27,26 @@ const sendOrderConfirmationEmail = async (userEmail, userName, orderDetails) => 
                 <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
                     <h3 style="margin-top: 0; color: #333;">Order Details</h3>
                     <p><strong>Tracking ID:</strong> ${orderDetails.trackingId}</p>
-                    <p><strong>Product:</strong> ${orderDetails.productName}</p>
-                    <p><strong>Quantity:</strong> ${orderDetails.quantity} ${orderDetails.unit}</p>
-                    <p><strong>Total Price:</strong> ₹${orderDetails.totalPrice.toFixed(2)}</p>
+                    <table style="width:100%; border-collapse: collapse; margin-top: 10px;">
+                        <tr style="border-bottom: 1px solid #ccc; text-align: left;">
+                            <th>Product</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                        </tr>
+                        ${orderDetails.items.map(item => `
+                        <tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 5px 0;">${item.productName}</td>
+                            <td style="padding: 5px 0;">${item.quantity} ${item.unit}</td>
+                            <td style="padding: 5px 0;">₹${item.itemTotal.toFixed(2)}</td>
+                        </tr>
+                        `).join('')}
+                    </table>
+                    <div style="margin-top: 10px; text-align: right;">
+                        <p><strong>Subtotal:</strong> ₹${orderDetails.subtotal.toFixed(2)}</p>
+                        <p><strong>Delivery Fee:</strong> ₹${orderDetails.deliveryFee.toFixed(2)}</p>
+                        <p><strong>Platform Fee:</strong> ₹${orderDetails.platformFee.toFixed(2)}</p>
+                        <p><strong>Total Amount:</strong> ₹${orderDetails.totalAmount.toFixed(2)}</p>
+                    </div>
                 </div>
                 <div style="text-align: center; margin-top: 30px;">
                     <a href="http://localhost:5173/orders" style="background-color: #166534; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; display: inline-block;">Track Your Order</a>
@@ -67,8 +84,10 @@ const sendOrderCancellationEmail = async (userEmail, userName, orderDetails, rea
                 <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
                     <h3 style="margin-top: 0; color: #333;">Cancellation Summary</h3>
                     <p><strong>Tracking ID:</strong> ${orderDetails.trackingId}</p>
-                    <p><strong>Product:</strong> ${orderDetails.productName}</p>
-                    <p><strong>Quantity:</strong> ${orderDetails.quantity} ${orderDetails.unit}</p>
+                    <p><strong>Items:</strong></p>
+                    <ul>
+                        ${orderDetails.items.map(item => `<li>${item.productName} (${item.quantity} ${item.unit})</li>`).join('')}
+                    </ul>
                     <p><strong>Reason:</strong> ${reason || 'Customer Requested'}</p>
                 </div>
                 <div style="text-align: center; margin-top: 30px;">

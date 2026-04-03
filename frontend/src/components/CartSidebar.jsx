@@ -37,7 +37,7 @@ const CartSidebar = () => {
             <div className="cart-sidebar-header">
                 <div style={{ textAlign: 'center', marginBottom: '15px' }}>
                     <h2 style={{ color: 'var(--primary-dark)', fontSize: '1.4rem', margin: 0, fontWeight: '800', letterSpacing: '1px' }}>
-                        Agrimart <span className="notranslate" translate="no">Cart</span>
+                        Agrimart Cart
                     </h2>
                 </div>
                 
@@ -62,7 +62,7 @@ const CartSidebar = () => {
                             marginTop: '10px'
                         }}
                     >
-                        Go to <span className="notranslate" translate="no" style={{marginLeft: '4px'}}>Cart</span>
+                        Go to Cart
                     </button>
                 </div>
             </div>

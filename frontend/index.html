@@ -53,7 +53,10 @@
     <script>
       function googleTranslateElementInit() {
         new google.translate.TranslateElement(
-          {pageLanguage: 'en'},
+          {
+            pageLanguage: 'en',
+            includedLanguages: 'en,te,hi,ta,kn,ml,mr,gu,pa,bn,ur,or,as'
+          },
           'google_translate_element'
         );
       }

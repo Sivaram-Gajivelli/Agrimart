@@ -6,20 +6,30 @@ const orderSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    farmer: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    },
-    product: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Product',
-        required: true
-    },
-    quantity: {
-        type: Number,
-        required: true
-    },
+    items: [{
+        product: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Product',
+            required: true
+        },
+        farmer: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true
+        },
+        quantity: {
+            type: Number,
+            required: true
+        },
+        pricePerKg: {
+            type: Number,
+            required: true
+        },
+        itemTotal: {
+            type: Number,
+            required: true
+        }
+    }],
     deliveryFee: {
         type: Number,
         required: true,
@@ -30,7 +40,11 @@ const orderSchema = new mongoose.Schema({
         required: true,
         default: 0
     },
-    totalPrice: {
+    subtotal: {
+        type: Number,
+        required: true
+    },
+    totalAmount: {
         type: Number,
         required: true
     },

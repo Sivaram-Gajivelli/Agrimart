@@ -154,7 +154,7 @@ const CustomerOrders = () => {
                                 </div>
                                 <div>
                                     <p style={{ margin: 0, fontSize: '0.85rem', color: '#565959', textTransform: 'uppercase' }}>Total</p>
-                                    <p style={{ margin: '5px 0 0 0', fontWeight: 'bold', color: 'var(--primary-dark)' }}>₹{order.totalPrice.toFixed(2)}</p>
+                                    <p style={{ margin: '5px 0 0 0', fontWeight: 'bold', color: 'var(--primary-dark)' }}>₹{(order.totalAmount || 0).toFixed(2)}</p>
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
                                     <p style={{ margin: 0, fontSize: '0.85rem', color: '#565959', textTransform: 'uppercase' }}>Tracking Id</p>
@@ -162,60 +162,70 @@ const CustomerOrders = () => {
                                 </div>
                             </div>
                             
-                            <div style={{ padding: '20px', display: 'flex', gap: '20px', alignItems: 'center' }}>
-                                <div style={{ width: '100px', height: '100px', flexShrink: 0, background: '#f9f9f9', borderRadius: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
-                                    <img 
-                                        src={getProductImage(order.product?.productName) || order.product?.image || "/placeholder.png"} 
-                                        alt={order.product?.productName} 
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                    />
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <h3 style={{ margin: '0 0 10px 0', color: 'var(--primary)', fontSize: '1.2rem' }}>
-                                        {order.product?.productName || 'Unknown Product'}
-                                    </h3>
-                                    <p style={{ margin: '5px 0', fontSize: '0.95rem' }}>
-                                        <strong>Farmer:</strong> {order.farmer?.name || 'Unknown'}
-                                    </p>
-                                    <p style={{ margin: '5px 0', fontSize: '0.95rem' }}>
-                                        <strong>Quantity:</strong> {order.quantity} {order.product?.unit || 'kg'}
-                                    </p>
-                                    <p style={{ margin: '5px 0', fontSize: '0.95rem' }}>
-                                        <strong>Status:</strong> <span style={{ 
-                                            padding: '3px 8px', 
-                                            borderRadius: '12px', 
-                                            fontSize: '0.85rem',
-                                            fontWeight: 'bold',
-                                            background: order.trackingStatus === 'Completed' ? '#d4edda' : '#fff3cd',
-                                            color: order.trackingStatus === 'Completed' ? '#155724' : '#856404',
-                                        }}>
-                                            {order.trackingStatus || 'Processing'}
-                                        </span>
-                                    </p>
-                                    {order.trackingStatus === 'Cancelled' && order.cancellationReason && (
-                                        <p style={{ margin: '5px 0', fontSize: '0.85rem', color: '#d32f2f' }}>
-                                            <strong>Cancel Reason:</strong> {order.cancellationReason}
+                            <div style={{ padding: '20px' }}>
+                                {order.items && order.items.map((item, index) => (
+                                    <div key={item.product?._id || index} style={{ display: 'flex', gap: '20px', alignItems: 'center', marginBottom: index !== order.items.length - 1 ? '15px' : '0', paddingBottom: index !== order.items.length - 1 ? '15px' : '0', borderBottom: index !== order.items.length - 1 ? '1px dashed #e0e0e0' : 'none' }}>
+                                        <div style={{ width: '80px', height: '80px', flexShrink: 0, background: '#f9f9f9', borderRadius: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+                                            <img 
+                                                src={getProductImage(item.product?.productName) || item.product?.image || "/placeholder.png"} 
+                                                alt={item.product?.productName} 
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            />
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <h3 style={{ margin: '0 0 5px 0', color: 'var(--primary)', fontSize: '1.1rem', textTransform: 'capitalize' }}>
+                                                {item.product?.productName || 'Unknown Product'}
+                                            </h3>
+                                            <p style={{ margin: '3px 0', fontSize: '0.9rem' }}>
+                                                <strong>Farmer:</strong> {item.farmer?.name || 'Unknown'}
+                                            </p>
+                                            <p style={{ margin: '3px 0', fontSize: '0.9rem' }}>
+                                                <strong>Quantity:</strong> {item.quantity} {item.product?.unit || 'kg'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                                
+                                <div style={{ borderTop: '1px solid #eee', marginTop: '15px', paddingTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <p style={{ margin: '5px 0', fontSize: '0.95rem' }}>
+                                            <strong>Status:</strong> <span style={{ 
+                                                padding: '3px 8px', 
+                                                borderRadius: '12px', 
+                                                fontSize: '0.85rem',
+                                                fontWeight: 'bold',
+                                                background: order.trackingStatus === 'Completed' ? '#d4edda' : '#fff3cd',
+                                                color: order.trackingStatus === 'Completed' ? '#155724' : '#856404',
+                                            }}>
+                                                {order.trackingStatus || 'Processing'}
+                                            </span>
                                         </p>
-                                    )}
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '150px' }}>
-                                    {order.trackingStatus !== 'Cancelled' && (
-                                        <button 
-                                            onClick={() => toggleTracking(order._id)}
-                                            style={{ width: '100%', padding: '10px', textAlign: 'center', background: 'var(--primary)', border: 'none', borderRadius: '8px', color: '#fff', fontSize: '0.9rem', fontWeight: '500', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
-                                            {trackingStates[order._id] ? 'Hide tracking' : 'Track your order'}
-                                        </button>
-                                    )}
-                                    {['Order Placed', 'Processing'].includes(order.trackingStatus || 'Processing') && (
-                                        <button 
-                                            onClick={() => openCancelModal(order)}
-                                            style={{ width: '100%', padding: '10px', textAlign: 'center', background: '#fff', border: '1px solid #d32f2f', borderRadius: '8px', color: '#d32f2f', fontSize: '0.9rem', fontWeight: '500', cursor: 'pointer', transition: 'all 0.2s ease', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}
-                                            onMouseOver={(e) => { e.currentTarget.style.background = '#fff5f5'; }}
-                                            onMouseOut={(e) => { e.currentTarget.style.background = '#fff'; }}
-                                        >
-                                            Cancel Order
-                                        </button>
-                                    )}
+                                        {order.trackingStatus === 'Cancelled' && order.cancellationReason && (
+                                            <p style={{ margin: '5px 0', fontSize: '0.85rem', color: '#d32f2f' }}>
+                                                <strong>Cancel Reason:</strong> {order.cancellationReason}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '150px' }}>
+                                        {order.trackingStatus !== 'Cancelled' && (
+                                            <button 
+                                                onClick={() => toggleTracking(order._id)}
+                                                style={{ width: '100%', padding: '8px', textAlign: 'center', background: 'var(--primary)', border: 'none', borderRadius: '6px', color: '#fff', fontSize: '0.9rem', fontWeight: '500', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
+                                                {trackingStates[order._id] ? 'Hide tracking' : 'Track your order'}
+                                            </button>
+                                        )}
+                                        {['Order Placed', 'Processing'].includes(order.trackingStatus || 'Processing') && (
+                                            <button 
+                                                onClick={() => openCancelModal(order)}
+                                                style={{ width: '100%', padding: '8px', textAlign: 'center', background: '#fff', border: '1px solid #d32f2f', borderRadius: '6px', color: '#d32f2f', fontSize: '0.9rem', fontWeight: '500', cursor: 'pointer', transition: 'all 0.2s ease', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}
+                                                onMouseOver={(e) => { e.currentTarget.style.background = '#fff5f5'; }}
+                                                onMouseOut={(e) => { e.currentTarget.style.background = '#fff'; }}
+                                            >
+                                                Cancel Order
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             

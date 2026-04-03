@@ -247,21 +247,35 @@ const Checkout = () => {
         try {
             if (address !== user.address) {
                     await axios.put('/api/user/update-address', { address }, { withCredentials: true });
-                }
+            }
 
-                const orderPromises = validItems.map(item => {
-                    const orderQty = Math.min(item.quantity, item.product.quantityAvailable);
-                    
-                    return axios.post('/api/orders', {
+            const checkoutItems = validItems.map(item => {
+                const orderQty = Math.min(item.quantity, item.product.quantityAvailable);
+                return {
                     productId: item.product._id,
-                    quantity: orderQty,
-                    deliveryAddress: address,
-                    deliveryFee: deliveryData[item.product._id]?.itemDeliveryFee || 0,
-                    platformFee: deliveryData[item.product._id]?.itemPlatformFee || 0
-                }, { withCredentials: true })
+                    quantity: orderQty
+                };
             });
 
-            await Promise.all(orderPromises);
+            // Calculate overall fees based on what was precalculated
+            let totalDeliveryFee = 0;
+            let totalPlatformFee = 0;
+            validItems.forEach(item => {
+                if (deliveryData[item.product._id]) {
+                    totalDeliveryFee += deliveryData[item.product._id].itemDeliveryFee || 0;
+                    totalPlatformFee += deliveryData[item.product._id].itemPlatformFee || 0;
+                }
+            });
+            
+            // Fallback for platform fee if deliveryData wasn't fully processed
+            if (totalPlatformFee === 0) totalPlatformFee = 5;
+
+            await axios.post('/api/orders', {
+                items: checkoutItems,
+                deliveryAddress: address,
+                deliveryFee: totalDeliveryFee,
+                platformFee: totalPlatformFee
+            }, { withCredentials: true });
             await axios.delete('/api/cart/all/clear', { withCredentials: true });
 
             toast.success(outOfStockItems.length > 0 ? 'Order placed for available items!' : 'Order placed successfully!');

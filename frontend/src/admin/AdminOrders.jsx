@@ -288,10 +288,19 @@ const AdminOrders = () => {
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     {filteredOrders.map(order => {
-                        const product = order.product;
                         const buyer = order.buyer;
-                        const farmer = order.farmer;
-                        const subtotal = product ? (product.pricePerKg * order.quantity) : 0;
+                        
+                        // Extract unique farmers from items
+                        const uniqueFarmers = [];
+                        const farmerSet = new Set();
+                        if (order.items) {
+                            order.items.forEach(item => {
+                                if (item.farmer && !farmerSet.has(item.farmer._id)) {
+                                    farmerSet.add(item.farmer._id);
+                                    uniqueFarmers.push(item.farmer);
+                                }
+                            });
+                        }
 
                         return (
                             <div
@@ -342,27 +351,28 @@ const AdminOrders = () => {
                                 }}>
                                     {/* Product Details */}
                                     <div>
-                                        <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: '#6b7280', letterSpacing: '0.05em', marginBottom: '8px' }}>Product</p>
-                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                                            <div style={{
-                                                width: '52px', height: '52px', borderRadius: '8px', overflow: 'hidden',
-                                                background: '#f3f4f6', flexShrink: 0, border: '1px solid #e5e7eb',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            }}>
-                                                {product?.image
-                                                    ? <img src={product.image} alt={product.productName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                    : <Package size={22} color="#9ca3af" />
-                                                }
-                                            </div>
-                                            <div>
-                                                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#111827' }}>{product?.productName || 'N/A'}</div>
-                                                <div style={{ fontSize: '0.78rem', color: '#6b7280', marginTop: '2px' }}>
-                                                    {product?.category} · {order.quantity} {product?.unit || 'kg'}
+                                        <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: '#6b7280', letterSpacing: '0.05em', marginBottom: '8px' }}>Items ({order.items?.length || 0})</p>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            {order.items && order.items.map((item, idx) => (
+                                                <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', borderBottom: idx !== order.items.length - 1 ? '1px dashed #e5e7eb' : 'none', paddingBottom: idx !== order.items.length - 1 ? '8px' : '0' }}>
+                                                    <div style={{
+                                                        width: '32px', height: '32px', borderRadius: '4px', overflow: 'hidden',
+                                                        background: '#f3f4f6', flexShrink: 0, border: '1px solid #e5e7eb',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    }}>
+                                                        {item.product?.image
+                                                            ? <img src={item.product?.image} alt={item.product?.productName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                            : <Package size={16} color="#9ca3af" />
+                                                        }
+                                                    </div>
+                                                    <div>
+                                                        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#111827', textTransform: 'capitalize' }}>{item.product?.productName || 'N/A'}</div>
+                                                        <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                                                            {item.quantity} {item.product?.unit || 'kg'} · ₹{fmt(item.itemTotal)}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '2px' }}>
-                                                    ₹{fmt(product?.pricePerKg)}/{product?.unit || 'kg'}
-                                                </div>
-                                            </div>
+                                            ))}
                                         </div>
                                     </div>
 
@@ -389,21 +399,20 @@ const AdminOrders = () => {
 
                                     {/* Farmer Details */}
                                     <div>
-                                        <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: '#6b7280', letterSpacing: '0.05em', marginBottom: '8px' }}>Farmer</p>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                                <Truck size={13} color="#059669" />
-                                            </div>
-                                            <strong style={{ fontSize: '0.88rem', color: '#111827' }}>{farmer?.name || 'N/A'}</strong>
+                                        <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: '#6b7280', letterSpacing: '0.05em', marginBottom: '8px' }}>Farmers</p>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                            {uniqueFarmers.map((farmer, idx) => (
+                                                <div key={idx}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                                                        <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                            <Truck size={11} color="#059669" />
+                                                        </div>
+                                                        <strong style={{ fontSize: '0.82rem', color: '#111827' }}>{farmer?.name || 'N/A'}</strong>
+                                                    </div>
+                                                    {farmer?.phone && <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{farmer.phone}</div>}
+                                                </div>
+                                            ))}
                                         </div>
-                                        {farmer?.email && <div style={{ fontSize: '0.78rem', color: '#6b7280' }}>{farmer.email}</div>}
-                                        {farmer?.phone && <div style={{ fontSize: '0.78rem', color: '#6b7280' }}>{farmer.phone}</div>}
-                                        {farmer?.address && (
-                                            <div style={{ fontSize: '0.74rem', color: '#9ca3af', marginTop: '4px', display: 'flex', gap: '4px', alignItems: 'flex-start' }}>
-                                                <MapPin size={11} style={{ flexShrink: 0, marginTop: '2px' }} />
-                                                <span style={{ lineHeight: 1.4 }}>{farmer.address}</span>
-                                            </div>
-                                        )}
                                     </div>
 
                                     {/* Pricing */}
@@ -412,7 +421,7 @@ const AdminOrders = () => {
                                         <div style={{ fontSize: '0.82rem', color: '#374151', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
                                                 <span style={{ color: '#6b7280' }}>Subtotal</span>
-                                                <span>₹{fmt(subtotal)}</span>
+                                                <span>₹{fmt(order.subtotal)}</span>
                                             </div>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
                                                 <span style={{ color: '#6b7280' }}>Delivery</span>
@@ -428,7 +437,7 @@ const AdminOrders = () => {
                                                 borderTop: '1px solid #e5e7eb', paddingTop: '5px', marginTop: '2px',
                                             }}>
                                                 <span style={{ color: '#374151' }}>Total</span>
-                                                <span>₹{fmt(order.totalPrice)}</span>
+                                                <span>₹{fmt(order.totalAmount)}</span>
                                             </div>
                                         </div>
                                         {order.cancellationReason && (

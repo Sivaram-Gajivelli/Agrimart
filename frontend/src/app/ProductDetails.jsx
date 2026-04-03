@@ -38,7 +38,7 @@ const renderStars = (rating) => {
       </span>
     );
   }
-  return <div className="stars notranslate" translate="no">{stars}</div>;
+  return <div className="stars">{stars}</div>;
 };
 
 const ProductDetails = () => {
@@ -192,7 +192,7 @@ const ProductDetails = () => {
             <form onSubmit={handleSubmitReview}>
               <div className="form-group">
                 <label>Overall rating</label>
-                <div className="star-rating-input notranslate" translate="no">
+                <div className="star-rating-input">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <span 
                       key={star} 

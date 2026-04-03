@@ -10,47 +10,72 @@ const { sendOrderConfirmationEmail, sendOrderCancellationEmail } = require('../u
 // @access  Private
 router.post('/', auth, async (req, res) => {
     try {
-        const { productId, quantity, deliveryAddress, deliveryFee, platformFee } = req.body;
+        const { items, deliveryAddress, deliveryFee, platformFee } = req.body;
 
-        if (!productId || quantity === undefined || !deliveryAddress) {
-            return res.status(400).json({ message: 'Product ID, quantity and delivery address are required' });
+        if (!items || !Array.isArray(items) || items.length === 0 || !deliveryAddress) {
+            return res.status(400).json({ message: 'Items array and delivery address are required' });
         }
 
-        if (quantity <= 0) {
-            return res.status(400).json({ message: 'Quantity must be greater than zero' });
+        let subtotal = 0;
+        const processedItems = [];
+
+        // Validate and process each item
+        for (const item of items) {
+            if (!item.productId || !item.quantity || item.quantity <= 0) {
+                return res.status(400).json({ message: 'Invalid item data (productId and valid quantity required)' });
+            }
+
+            const product = await Product.findById(item.productId);
+
+            if (!product) {
+                return res.status(404).json({ message: `Product with ID ${item.productId} not found` });
+            }
+
+            if (product.verificationStatus === 'rejected') {
+                return res.status(400).json({ message: `Product ${product.productName} is rejected and not available.` });
+            }
+
+            if (item.quantity > product.quantityAvailable) {
+                return res.status(400).json({ message: `Not enough stock available for ${product.productName}` });
+            }
+
+            const itemTotal = item.quantity * product.pricePerKg;
+            subtotal += itemTotal;
+
+            processedItems.push({
+                product: product._id,
+                farmer: product.farmer,
+                quantity: item.quantity,
+                pricePerKg: product.pricePerKg,
+                itemTotal,
+                productName: product.productName, // Temporarily appending for email array construction later
+                unit: product.unit || 'kg'
+            });
+
+            // Deduct from product stock immediately
+            product.quantityAvailable -= item.quantity;
+            await product.save();
         }
 
-        const product = await Product.findById(productId);
-
-        if (!product) {
-            return res.status(404).json({ message: 'Product not found' });
-        }
-
-        if (product.verificationStatus === 'rejected') {
-            return res.status(400).json({ message: 'Product is rejected and not available for purchase.' });
-        }
-
-        if (quantity > product.quantityAvailable) {
-            return res.status(400).json({ message: 'Not enough stock available' });
-        }
-
-        const itemPrice = quantity * product.pricePerKg;
-        const totalPrice = itemPrice + (Number(deliveryFee) || 0) + (Number(platformFee) || 0);
+        const overallDeliveryFee = Number(deliveryFee) || 0;
+        const overallPlatformFee = Number(platformFee) || 0;
+        const totalAmount = subtotal + overallDeliveryFee + overallPlatformFee;
 
         const newOrder = new Order({
             buyer: req.user.id,
-            farmer: product.farmer,
-            product: productId,
-            quantity,
-            deliveryFee: Number(deliveryFee) || 0,
-            platformFee: Number(platformFee) || 0,
-            totalPrice,
+            items: processedItems.map(pi => ({
+                product: pi.product,
+                farmer: pi.farmer,
+                quantity: pi.quantity,
+                pricePerKg: pi.pricePerKg,
+                itemTotal: pi.itemTotal
+            })),
+            deliveryFee: overallDeliveryFee,
+            platformFee: overallPlatformFee,
+            subtotal,
+            totalAmount,
             deliveryAddress
         });
-
-        // Deduct from product stock immediately to prevent double selling
-        product.quantityAvailable -= quantity;
-        await product.save();
 
         const savedOrder = await newOrder.save();
 
@@ -58,10 +83,11 @@ router.post('/', auth, async (req, res) => {
         if (req.user && req.user.email) {
             sendOrderConfirmationEmail(req.user.email, req.user.name || 'Customer', {
                 trackingId: savedOrder._id,
-                productName: product.productName,
-                quantity: quantity,
-                unit: product.unit || 'kg',
-                totalPrice: totalPrice
+                items: processedItems,
+                subtotal,
+                deliveryFee: overallDeliveryFee,
+                platformFee: overallPlatformFee,
+                totalAmount
             }).catch(err => console.error("Email failed:", err));
         }
 
@@ -82,12 +108,22 @@ router.get('/farmer', auth, async (req, res) => {
             return res.status(403).json({ message: 'Access denied.' });
         }
 
-        const orders = await Order.find({ farmer: req.user.id })
+        // Find orders where at least one item belongs to this farmer
+        const orders = await Order.find({ 'items.farmer': req.user.id })
             .populate('buyer', 'name phone email address')
-            .populate('product', 'productName pricePerKg unit image selectedWeight')
+            .populate('items.product', 'productName pricePerKg unit image selectedWeight')
             .sort({ createdAt: -1 });
 
-        res.json(orders);
+        // Filter out items that do not belong to the farmer
+        const farmerOrders = orders.map(order => {
+            const matchedItems = order.items.filter(item => item.farmer.toString() === req.user.id);
+            return {
+                ...order.toObject(),
+                items: matchedItems
+            };
+        });
+
+        res.json(farmerOrders);
     } catch (error) {
         console.error('Error fetching farmer orders:', error);
         res.status(500).json({ message: 'Server Error' });
@@ -104,8 +140,8 @@ router.get('/customer', auth, async (req, res) => {
         }
 
         const orders = await Order.find({ buyer: req.user.id })
-            .populate('farmer', 'name')
-            .populate('product', 'productName pricePerKg unit image')
+            .populate('items.farmer', 'name')
+            .populate('items.product', 'productName pricePerKg unit image')
             .sort({ createdAt: -1 });
 
         res.json(orders);
@@ -138,7 +174,9 @@ router.put('/:id/status', auth, async (req, res) => {
             return res.status(404).json({ message: 'Order not found' });
         }
 
-        if (order.farmer.toString() !== req.user.id) {
+        // Check if the farmer owns any item in this order
+        const hasItem = order.items.some(item => item.farmer.toString() === req.user.id);
+        if (!hasItem) {
             return res.status(401).json({ message: 'Not authorized to update this order' });
         }
 
@@ -162,7 +200,7 @@ router.put('/:id/cancel', auth, async (req, res) => {
         }
 
         const { reason } = req.body;
-        const order = await Order.findById(req.params.id).populate('product');
+        const order = await Order.findById(req.params.id).populate('items.product');
 
         if (!order) {
             return res.status(404).json({ message: 'Order not found' });
@@ -180,9 +218,13 @@ router.put('/:id/cancel', auth, async (req, res) => {
         order.cancellationReason = reason || 'Customer Requested';
 
         // Restore inventory
-        if (order.product) {
-            order.product.quantityAvailable += order.quantity;
-            await order.product.save();
+        if (order.items && order.items.length > 0) {
+            for (const item of order.items) {
+                if (item.product) {
+                    item.product.quantityAvailable += item.quantity;
+                    await item.product.save();
+                }
+            }
         }
 
         await order.save();
@@ -191,9 +233,11 @@ router.put('/:id/cancel', auth, async (req, res) => {
         if (req.user && req.user.email) {
             sendOrderCancellationEmail(req.user.email, req.user.name || 'Customer', {
                 trackingId: order._id,
-                productName: order.product?.productName || 'Unknown Product',
-                quantity: order.quantity,
-                unit: order.product?.unit || 'kg',
+                items: order.items.map(i => ({
+                    productName: i.product?.productName || 'Unknown Product',
+                    quantity: i.quantity,
+                    unit: i.product?.unit || 'kg'
+                }))
             }, order.cancellationReason).catch(err => console.error("Email failed:", err));
         }
 

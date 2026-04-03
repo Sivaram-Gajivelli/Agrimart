@@ -109,7 +109,7 @@ router.get("/stats", adminAuth, async (req, res) => {
       // Total Revenue
       Order.aggregate([
         { $match: { trackingStatus: { $in: ["Completed", "Delivered"] } } },
-        { $group: { _id: null, total: { $sum: "$totalPrice" } } }
+        { $group: { _id: null, total: { $sum: "$totalAmount" } } }
       ]),
 
       // Today's Stats
@@ -118,7 +118,7 @@ router.get("/stats", adminAuth, async (req, res) => {
         { $group: { 
             _id: null, 
             count: { $sum: 1 }, 
-            revenue: { $sum: { $cond: [{ $in: ["$trackingStatus", ["Completed", "Delivered"]] }, "$totalPrice", 0] } } 
+            revenue: { $sum: { $cond: [{ $in: ["$trackingStatus", ["Completed", "Delivered"]] }, "$totalAmount", 0] } } 
           } 
         }
       ]),
@@ -129,7 +129,7 @@ router.get("/stats", adminAuth, async (req, res) => {
         { $group: {
             _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
             orders: { $sum: 1 },
-            revenue: { $sum: { $cond: [{ $in: ["$trackingStatus", ["Completed", "Delivered"]] }, "$totalPrice", 0] } }
+            revenue: { $sum: { $cond: [{ $in: ["$trackingStatus", ["Completed", "Delivered"]] }, "$totalAmount", 0] } }
           }
         },
         { $sort: { "_id": 1 } }
@@ -140,9 +140,9 @@ router.get("/stats", adminAuth, async (req, res) => {
     const todaysOrders = todaysStats[0]?.count || 0;
     const todaysRevenue = todaysStats[0]?.revenue || 0;
 
-    // Format chart data for frontend (fill missing days if any, but simplified for now)
+    // Format chart data for frontend
     const formattedChartData = chartData.map(item => ({
-      name: new Date(item._id).toLocaleDateString('en-US', { weekday: 'short' }),
+      name: new Date(item._id).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       orders: item.orders,
       revenue: item.revenue
     }));
@@ -250,8 +250,8 @@ router.get("/orders", adminAuth, async (req, res) => {
   try {
     const orders = await Order.find()
       .populate("buyer", "name email phone")
-      .populate("farmer", "name email phone address")
-      .populate("product", "productName pricePerKg unit image category")
+      .populate("items.farmer", "name email phone address")
+      .populate("items.product", "productName pricePerKg unit image category")
       .sort({ createdAt: -1 });
     res.json(orders);
   } catch (error) {

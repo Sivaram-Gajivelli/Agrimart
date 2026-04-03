@@ -33,6 +33,8 @@ const getProductImage = (productName) => {
     return null;
 };
 
+import PhoneticTerm from '../components/PhoneticTerm';
+
 const CategoryCard = ({ label, active, onClick, image }) => (
     <div
         onClick={onClick}
@@ -99,7 +101,9 @@ const CustomerHome = () => {
     return (
         <>
             <div style={{ paddingTop: '100px', paddingBottom: '40px', textAlign: 'center', background: 'var(--primary-dark)', color: 'white' }}>
-                <h1 style={{ fontSize: '2.5rem', marginBottom: '10px' }}>Customer Portal</h1>
+                <h1 style={{ fontSize: '2.5rem', marginBottom: '10px' }}>
+                    <PhoneticTerm english="Customer" te="కస్టమర్" hi="कस्टमर" ta="கஸ்டமர்" kn="ಕಸ್ಟಮರ್" ml="കസ്റ്റമർ" mr="कस्टमर" gu="કસ્ટમર" pa="ਕਸਟਮਰ" bn="কাস্টমার" or="କଷ୍ଟମର୍" as="কাষ্টমাৰ" /> <PhoneticTerm english="Portal" te="పోర్టల్" hi="पोर्टल" ta="போர்ட்டல்" kn="ಪೋರ್ಟಲ್" ml="പോർട്ടൽ" mr="पोर्टल" gu="પોર્ટલ" pa="ਪੋਰਟਲ" bn="পোর্টাল" or="ପୋର୍ଟାଲ୍" as="প’ৰ্টেল" />
+                </h1>
                 <p style={{ opacity: 0.9 }}>Explore fresh produce directly from farmers and manage your orders.</p>
             </div>
 

@@ -72,10 +72,10 @@ const Cart = () => {
         <div className="cart-container">
             <div className="cart-layout">
                 <div className="cart-main">
-                    <h1>Shopping <span className="notranslate" translate="no">Cart</span></h1>
+                    <h1>Shopping Cart</h1>
                     {(!cart || cart.items.length === 0) ? (
                         <div className="empty-cart">
-                            <p>Your Agrimart <span className="notranslate" translate="no">cart</span> is empty.</p>
+                            <p>Your Agrimart cart is empty.</p>
                             <Link to="/" className="shop-link">Continue shopping</Link>
                         </div>
                     ) : (
