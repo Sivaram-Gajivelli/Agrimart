@@ -14,13 +14,31 @@ for (const path in produceImages) {
 
 const getProductImage = (productName) => {
     if (!productName || productName.trim() === '') return null;
-    let normalized = productName.trim().toLowerCase().replace(/\s+/g, '-');
-    if (imageMap[normalized]) return imageMap[normalized];
-    if (normalized.endsWith('s') && imageMap[normalized.slice(0, -1)]) return imageMap[normalized.slice(0, -1)];
-    if (imageMap[normalized + 's']) return imageMap[normalized + 's'];
+    
+    // Normalize: lowercase, trim, and replace spaces with both dash and underscore
+    const name = productName.trim().toLowerCase();
+    const withDash = name.replace(/\s+/g, '-');
+    const withUnderscore = name.replace(/\s+/g, '_');
+    
+    // Check exact matches
+    if (imageMap[withDash]) return imageMap[withDash];
+    if (imageMap[withUnderscore]) return imageMap[withUnderscore];
+    
+    // Check plural/singular matches
+    const checkPlural = (n) => {
+        if (imageMap[n]) return imageMap[n];
+        if (n.endsWith('s') && imageMap[n.slice(0, -1)]) return imageMap[n.slice(0, -1)];
+        if (imageMap[n + 's']) return imageMap[n + 's'];
+        return null;
+    };
+    
+    let res = checkPlural(withDash) || checkPlural(withUnderscore);
+    if (res) return res;
+
+    // Substring matching as fallback
     for (const key in imageMap) {
-        if (normalized.length > 2 && key.length > 2) {
-            if (normalized.includes(key) || key.includes(normalized)) return imageMap[key];
+        if (name.length > 2 && key.length > 2) {
+            if (name.includes(key) || key.includes(name)) return imageMap[key];
         }
     }
     return null;
@@ -87,7 +105,7 @@ const CustomerOrders = () => {
 
         try {
             setIsCancelling(true);
-            await axios.put(`http://localhost:3000/api/orders/${selectedOrderToCancel._id}/cancel`, 
+            await axios.put(`/api/orders/${selectedOrderToCancel._id}/cancel`, 
                 { reason: finalReason }, 
                 { withCredentials: true }
             );
@@ -107,7 +125,7 @@ const CustomerOrders = () => {
     useEffect(() => {
         const fetchOrders = async () => {
             try {
-                const response = await axios.get('http://localhost:3000/api/orders/customer', {
+                const response = await axios.get('/api/orders/customer', {
                     withCredentials: true
                 });
                 setOrders(response.data);
@@ -349,3 +367,4 @@ const CustomerOrders = () => {
 };
 
 export default CustomerOrders;
+

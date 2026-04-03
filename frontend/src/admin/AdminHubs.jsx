@@ -11,7 +11,7 @@ const AdminHubs = () => {
     const fetchHubs = async () => {
         setLoading(true);
         try {
-            const res = await axios.get('http://localhost:3000/api/admin/hubs', { withCredentials: true });
+            const res = await axios.get('/api/admin/hubs', { withCredentials: true });
             setHubs(res.data);
         } catch (err) {
             toast.error('Failed to fetch hubs');
@@ -72,3 +72,4 @@ const AdminHubs = () => {
 };
 
 export default AdminHubs;
+

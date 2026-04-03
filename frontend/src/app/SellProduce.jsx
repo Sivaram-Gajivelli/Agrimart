@@ -88,7 +88,7 @@ const SellProduce = () => {
                 }
 
                 // Fetch securely from our Express backend instead of directly from frontend
-                const apiUrl = `http://localhost:3000/api/market/prices?commodity=${encodeURIComponent(searchCommodity)}`;
+                const apiUrl = `/api/market/prices?commodity=${encodeURIComponent(searchCommodity)}`;
 
                 const response = await fetch(apiUrl);
                 if (!response.ok) throw new Error("Backend API returned an error");
@@ -243,7 +243,7 @@ const SellProduce = () => {
         }
 
         try {
-            const response = await fetch('http://localhost:3000/api/products', {
+            const response = await fetch('/api/products', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -290,31 +290,34 @@ const SellProduce = () => {
     // Advanced image matching logic
     const getProductImage = (productName) => {
         if (!productName || productName.trim() === '') return null;
+        
+        // Normalize: lowercase, trim, and replace spaces with both dash and underscore
+        const name = productName.trim().toLowerCase();
+        const withDash = name.replace(/\s+/g, '-');
+        const withUnderscore = name.replace(/\s+/g, '_');
+        
+        // Check exact matches
+        if (imageMap[withDash]) return imageMap[withDash];
+        if (imageMap[withUnderscore]) return imageMap[withUnderscore];
+        
+        // Check plural/singular matches
+        const checkPlural = (n) => {
+            if (imageMap[n]) return imageMap[n];
+            if (n.endsWith('s') && imageMap[n.slice(0, -1)]) return imageMap[n.slice(0, -1)];
+            if (imageMap[n + 's']) return imageMap[n + 's'];
+            return null;
+        };
+        
+        let res = checkPlural(withDash) || checkPlural(withUnderscore);
+        if (res) return res;
 
-        let normalized = productName.trim().toLowerCase().replace(/\s+/g, '-');
-
-        // Exact match
-        if (imageMap[normalized]) return imageMap[normalized];
-
-        // Try singular/plural match (basic)
-        if (normalized.endsWith('s') && imageMap[normalized.slice(0, -1)]) {
-            return imageMap[normalized.slice(0, -1)];
-        }
-        if (imageMap[normalized + 's']) {
-            return imageMap[normalized + 's'];
-        }
-
-        // Substring match (if normalized contains the key or key contains normalized)
+        // Substring matching as fallback
         for (const key in imageMap) {
-            // Ensure significant length for substring matching to avoid false positives
-            if (normalized.length > 2 && key.length > 2) {
-                if (normalized.includes(key) || key.includes(normalized)) {
-                    return imageMap[key];
-                }
+            if (name.length > 2 && key.length > 2) {
+                if (name.includes(key) || key.includes(name)) return imageMap[key];
             }
         }
-
-        return null; // Not found
+        return null;
     };
 
     const imageSrc = getProductImage(formData.productName);
@@ -593,3 +596,4 @@ const SellProduce = () => {
 };
 
 export default SellProduce;
+

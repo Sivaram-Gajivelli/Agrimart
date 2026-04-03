@@ -19,7 +19,7 @@ router.get("/prices", async (req, res) => {
         const cachedItem = cache.get(cacheKey);
 
         if (cachedItem && (Date.now() - cachedItem.timestamp < CACHE_TTL)) {
-            console.log(`[Cache] Serving ${cacheKey} from cache`);
+            // console.log(`[Cache] Serving ${cacheKey} from cache`);
             return res.json(cachedItem.data);
         }
 

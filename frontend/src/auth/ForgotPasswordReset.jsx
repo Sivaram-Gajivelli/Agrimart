@@ -92,7 +92,7 @@ export default function ForgotPasswordReset() {
         }
 
         try {
-            const res = await fetch("http://localhost:3000/api/auth/forgot-password/reset", {
+            const res = await fetch("/api/auth/forgot-password/reset", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ contact, newPassword, role })
@@ -187,3 +187,4 @@ export default function ForgotPasswordReset() {
         </div>
     );
 }
+

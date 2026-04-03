@@ -17,7 +17,7 @@ export const CartProvider = ({ children }) => {
         if (!isAuthenticated || user?.role !== 'customer') return;
         setLoading(true);
         try {
-            const res = await axios.get('http://localhost:3000/api/cart', { withCredentials: true });
+            const res = await axios.get('/api/cart', { withCredentials: true });
             setCart(res.data);
         } catch (err) {
             console.error('Error fetching cart:', err);
@@ -37,7 +37,7 @@ export const CartProvider = ({ children }) => {
         }
 
         try {
-            const res = await axios.post('http://localhost:3000/api/cart', { productId, quantity }, { withCredentials: true });
+            const res = await axios.post('/api/cart', { productId, quantity }, { withCredentials: true });
             setCart(res.data);
             setIsSidebarOpen(true); // Open sidebar on add
             toast.success('Added to cart!');
@@ -48,7 +48,7 @@ export const CartProvider = ({ children }) => {
 
     const updateQuantity = async (productId, quantity) => {
         try {
-            const res = await axios.put(`http://localhost:3000/api/cart/${productId}`, { quantity }, { withCredentials: true });
+            const res = await axios.put(`/api/cart/${productId}`, { quantity }, { withCredentials: true });
             setCart(res.data);
         } catch (err) {
             toast.error(err.response?.data?.message || 'Failed to update quantity.');
@@ -57,7 +57,7 @@ export const CartProvider = ({ children }) => {
 
     const removeFromCart = async (productId) => {
         try {
-            const res = await axios.delete(`http://localhost:3000/api/cart/${productId}`, { withCredentials: true });
+            const res = await axios.delete(`/api/cart/${productId}`, { withCredentials: true });
             setCart(res.data);
         } catch (err) {
             toast.error(err.response?.data?.message || 'Failed to remove item.');
@@ -79,3 +79,4 @@ export const CartProvider = ({ children }) => {
         </CartContext.Provider>
     );
 };
+

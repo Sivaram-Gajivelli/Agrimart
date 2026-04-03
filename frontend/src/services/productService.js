@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API = "http://localhost:3000/api/products";
+const API = "/api/products";
 
 export const getMarketplaceProducts = () => {
   return axios.get(`${API}/marketplace`, { withCredentials: true });
@@ -13,3 +13,4 @@ export const getProductById = (id) => {
 export const addProductReview = (id, reviewData) => {
   return axios.post(`${API}/${id}/reviews`, reviewData, { withCredentials: true });
 };
+

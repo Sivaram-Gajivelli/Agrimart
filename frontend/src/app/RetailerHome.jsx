@@ -26,3 +26,4 @@ const RetailerHome = () => {
 };
 
 export default RetailerHome;
+

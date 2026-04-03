@@ -151,7 +151,7 @@ export default function Signup() {
         return;
       }
 
-      const res = await fetch("http://localhost:3000/api/auth/send-email-verify", {
+      const res = await fetch("/api/auth/send-email-verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -185,7 +185,7 @@ export default function Signup() {
         return;
       }
 
-      const res = await fetch("http://localhost:3000/api/auth/send-mobile-otp", {
+      const res = await fetch("/api/auth/send-mobile-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -208,7 +208,7 @@ export default function Signup() {
 
   const verifyOtp = async () => {
     try {
-      const res = await fetch("http://localhost:3000/api/auth/verify-mobile-otp", {
+      const res = await fetch("/api/auth/verify-mobile-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -338,7 +338,7 @@ export default function Signup() {
                   onClick={async () => {
                     const otp = window.tempEmailOtp;
                     try {
-                      const res = await fetch("http://localhost:3000/api/auth/verify-email-otp", {
+                      const res = await fetch("/api/auth/verify-email-otp", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         credentials: "include",
@@ -462,3 +462,4 @@ export default function Signup() {
     </div>
   );
 }
+

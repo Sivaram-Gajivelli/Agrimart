@@ -19,3 +19,4 @@ const PhoneticTerm = ({ english, te, hi, ta, kn, ml, mr, gu, pa, bn, or, as }) =
 
 
 export default PhoneticTerm;
+

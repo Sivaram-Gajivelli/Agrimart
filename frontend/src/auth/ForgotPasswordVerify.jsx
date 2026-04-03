@@ -60,7 +60,7 @@ export default function ForgotPasswordVerify() {
         }
 
         try {
-            const res = await fetch("http://localhost:3000/api/auth/forgot-password/verify-otp", {
+            const res = await fetch("/api/auth/forgot-password/verify-otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ contact, otp })
@@ -82,7 +82,7 @@ export default function ForgotPasswordVerify() {
         if (resendCooldown > 0) return;
 
         try {
-            const res = await fetch("http://localhost:3000/api/auth/forgot-password/send-otp", {
+            const res = await fetch("/api/auth/forgot-password/send-otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ contact, role })
@@ -163,3 +163,4 @@ export default function ForgotPasswordVerify() {
         </div>
     );
 }
+

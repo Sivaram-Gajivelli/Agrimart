@@ -1,23 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 
-// Glob import all images from assets (reusing logic from MyProducts)
-const produceImages = import.meta.glob('../assets/images/*.{jpg,jpeg,png,webp}', { eager: true });
+// Glob import all images from assets produce directory
+const produceImages = import.meta.glob('../assets/images/produce/*.{png,jpg,jpeg,webp,svg}', { eager: true });
 
-const imageMap = Object.keys(produceImages).reduce((acc, path) => {
-    const filename = path.split('/').pop().split('.')[0].toLowerCase();
-    acc[filename] = produceImages[path].default;
-    return acc;
-}, {});
+const imageMap = {};
+for (const path in produceImages) {
+    const filename = path.split('/').pop().toLowerCase();
+    const nameWithoutExt = filename.split('.')[0];
+    imageMap[nameWithoutExt] = produceImages[path].default || produceImages[path];
+}
 
 const getProductImage = (productName) => {
     const defaultImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='%23a0aec0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'%3E%3C/path%3E%3Cpath d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'%3E%3C/path%3E%3C/svg%3E";
-    if (!productName) return defaultImage;
-    const nameStr = String(productName).toLowerCase().trim();
-    // Use the image map if available
-    for (const [key, value] of Object.entries(imageMap)) {
-        if (key.includes(nameStr) || nameStr.includes(key)) {
-            return value;
+    if (!productName || productName.trim() === '') return defaultImage;
+    
+    // Normalize: lowercase, trim, and replace spaces with both dash and underscore
+    const name = productName.trim().toLowerCase();
+    const withDash = name.replace(/\s+/g, '-');
+    const withUnderscore = name.replace(/\s+/g, '_');
+    
+    // Check exact matches
+    if (imageMap[withDash]) return imageMap[withDash];
+    if (imageMap[withUnderscore]) return imageMap[withUnderscore];
+    
+    // Check plural/singular matches
+    const checkPlural = (n) => {
+        if (imageMap[n]) return imageMap[n];
+        if (n.endsWith('s') && imageMap[n.slice(0, -1)]) return imageMap[n.slice(0, -1)];
+        if (imageMap[n + 's']) return imageMap[n + 's'];
+        return null;
+    };
+    
+    let res = checkPlural(withDash) || checkPlural(withUnderscore);
+    if (res) return res;
+
+    // Substring matching as fallback
+    for (const key in imageMap) {
+        if (name.length > 2 && key.length > 2) {
+            if (name.includes(key) || key.includes(name)) return imageMap[key];
         }
     }
     return defaultImage;
@@ -34,12 +55,12 @@ const PricePrediction = () => {
             try {
                 // Parallelize all fetch requests
                 const [statusRes, predResponse, liveRes, mangoRes, melonRes, potatoRes] = await Promise.all([
-                    fetch("http://localhost:3000/api/market/status"),
-                    fetch("http://localhost:3000/api/predictions"),
-                    fetch("http://localhost:3000/api/market/prices?limit=100"),
-                    fetch("http://localhost:3000/api/market/prices?commodity=Mango&limit=5"),
-                    fetch("http://localhost:3000/api/market/prices?commodity=Water%20Melon&limit=5"),
-                    fetch("http://localhost:3000/api/market/prices?commodity=Potato&limit=25")
+                    fetch("/api/market/status"),
+                    fetch("/api/predictions"),
+                    fetch("/api/market/prices?limit=100"),
+                    fetch("/api/market/prices?commodity=Mango&limit=5"),
+                    fetch("/api/market/prices?commodity=Water%20Melon&limit=5"),
+                    fetch("/api/market/prices?commodity=Potato&limit=25")
                 ]);
 
                 if (statusRes.ok) {
@@ -352,3 +373,4 @@ const PricePrediction = () => {
 };
 
 export default PricePrediction;
+

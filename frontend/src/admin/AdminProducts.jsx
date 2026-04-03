@@ -12,7 +12,7 @@ const AdminProducts = () => {
     const fetchProducts = async () => {
         setLoading(true);
         try {
-            const res = await axios.get('http://localhost:3000/api/admin/products', { withCredentials: true });
+            const res = await axios.get('/api/admin/products', { withCredentials: true });
             setProducts(res.data);
         } catch (err) {
             toast.error('Failed to fetch products');
@@ -27,7 +27,7 @@ const AdminProducts = () => {
 
     const handleApprove = async (id, status) => {
         try {
-            await axios.put(`http://localhost:3000/api/admin/products/${id}/approve`, { status }, { withCredentials: true });
+            await axios.put(`/api/admin/products/${id}/approve`, { status }, { withCredentials: true });
             toast.success(`Product ${status} successfully`);
             fetchProducts();
         } catch (err) {
@@ -105,3 +105,4 @@ const AdminProducts = () => {
 };
 
 export default AdminProducts;
+

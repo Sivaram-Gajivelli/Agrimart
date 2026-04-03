@@ -87,20 +87,18 @@ const productSchema = new mongoose.Schema({
 });
 
 // Pre-save hook to automatically capitalize the first letter of the product name
-productSchema.pre('save', function(next) {
+productSchema.pre('save', function() {
     if (this.isModified('productName') && this.productName) {
         this.productName = this.productName.charAt(0).toUpperCase() + this.productName.slice(1);
     }
-    next();
 });
 
 // Pre-updateOne/findOneAndUpdate hook for capitalization
-productSchema.pre('findOneAndUpdate', function(next) {
+productSchema.pre('findOneAndUpdate', function() {
     const update = this.getUpdate();
     if (update.$set && update.$set.productName) {
         update.$set.productName = update.$set.productName.charAt(0).toUpperCase() + update.$set.productName.slice(1);
     }
-    next();
 });
 
 module.exports = mongoose.model('Product', productSchema, 'products');

@@ -49,3 +49,4 @@ const ShippingPolicy = () => {
 };
 
 export default ShippingPolicy;
+

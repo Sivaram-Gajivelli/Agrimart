@@ -17,7 +17,7 @@ const AdminSettings = () => {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const res = await axios.get('http://localhost:3000/api/admin/settings', { withCredentials: true });
+                const res = await axios.get('/api/admin/settings', { withCredentials: true });
                 setSettings(res.data);
             } catch (err) {
                 toast.error('Failed to load settings');
@@ -36,7 +36,7 @@ const AdminSettings = () => {
         e.preventDefault();
         setSaving(true);
         try {
-            await axios.put('http://localhost:3000/api/admin/settings', settings, { withCredentials: true });
+            await axios.put('/api/admin/settings', settings, { withCredentials: true });
             toast.success('Settings updated successfully');
         } catch (err) {
             toast.error('Failed to save settings');
@@ -78,3 +78,4 @@ const AdminSettings = () => {
 };
 
 export default AdminSettings;
+

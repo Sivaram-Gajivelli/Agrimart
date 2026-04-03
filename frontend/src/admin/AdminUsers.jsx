@@ -12,7 +12,7 @@ const AdminUsers = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`http://localhost:3000/api/admin/users?role=${activeTab}`, {
+      const res = await axios.get(`/api/admin/users?role=${activeTab}`, {
         withCredentials: true
       });
       setUsers(res.data);
@@ -30,7 +30,7 @@ const AdminUsers = () => {
 
   const handleStatusChange = async (userId, newStatus) => {
     try {
-      await axios.put(`http://localhost:3000/api/admin/users/${userId}/status`, {
+      await axios.put(`/api/admin/users/${userId}/status`, {
         status: newStatus
       }, { withCredentials: true });
       
@@ -162,3 +162,4 @@ const AdminUsers = () => {
 };
 
 export default AdminUsers;
+

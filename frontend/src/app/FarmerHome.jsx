@@ -17,7 +17,7 @@ const FarmerHome = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const response = await fetch('http://localhost:3000/api/dashboard/farmer-stats', {
+                const response = await fetch('/api/dashboard/farmer-stats', {
                     credentials: 'include'
                 });
                 if (!response.ok) throw new Error('Failed to fetch dashboard stats');
@@ -95,3 +95,4 @@ const FarmerHome = () => {
 };
 
 export default FarmerHome;
+

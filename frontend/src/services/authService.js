@@ -9,3 +9,4 @@ export const registerUser = (data) => {
 export const loginUser = (data) => {
   return axios.post(`${API}/login`, data, { withCredentials: true });
 };
+

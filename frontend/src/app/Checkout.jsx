@@ -17,13 +17,31 @@ for (const path in produceImages) {
 
 const getProductImage = (productName) => {
     if (!productName || productName.trim() === '') return null;
-    let normalized = productName.trim().toLowerCase().replace(/\s+/g, '-');
-    if (imageMap[normalized]) return imageMap[normalized];
-    if (normalized.endsWith('s') && imageMap[normalized.slice(0, -1)]) return imageMap[normalized.slice(0, -1)];
-    if (imageMap[normalized + 's']) return imageMap[normalized + 's'];
+    
+    // Normalize: lowercase, trim, and replace spaces with both dash and underscore
+    const name = productName.trim().toLowerCase();
+    const withDash = name.replace(/\s+/g, '-');
+    const withUnderscore = name.replace(/\s+/g, '_');
+    
+    // Check exact matches
+    if (imageMap[withDash]) return imageMap[withDash];
+    if (imageMap[withUnderscore]) return imageMap[withUnderscore];
+    
+    // Check plural/singular matches
+    const checkPlural = (n) => {
+        if (imageMap[n]) return imageMap[n];
+        if (n.endsWith('s') && imageMap[n.slice(0, -1)]) return imageMap[n.slice(0, -1)];
+        if (imageMap[n + 's']) return imageMap[n + 's'];
+        return null;
+    };
+    
+    let res = checkPlural(withDash) || checkPlural(withUnderscore);
+    if (res) return res;
+
+    // Substring matching as fallback
     for (const key in imageMap) {
-        if (normalized.length > 2 && key.length > 2) {
-            if (normalized.includes(key) || key.includes(normalized)) return imageMap[key];
+        if (name.length > 2 && key.length > 2) {
+            if (name.includes(key) || key.includes(name)) return imageMap[key];
         }
     }
     return null;
@@ -45,11 +63,31 @@ const Checkout = () => {
 
     const geocodeAddress = async (addressText) => {
         try {
-            const res = await fetch(`https://api.openrouteservice.org/geocode/search?api_key=${API_KEY}&text=${encodeURIComponent(addressText)}`);
+            // First try Nominatim as it has better Indian locality data
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressText)}`, {
+                headers: { 'User-Agent': 'Agrimart/1.0' }
+            });
             const data = await res.json();
-            if (data && data.features && data.features.length > 0) {
-                return data.features[0].geometry.coordinates; // [lng, lat]
+            
+            if (data && data.length > 0) {
+                const feature = data[0];
+                return {
+                    coordinates: [parseFloat(feature.lon), parseFloat(feature.lat)], // [lng, lat]
+                    district: feature.display_name
+                };
             }
+
+            // Fallback to OpenRouteService if Nominatim fails
+            const orsRes = await fetch(`https://api.openrouteservice.org/geocode/search?api_key=${API_KEY}&text=${encodeURIComponent(addressText)}`);
+            const orsData = await orsRes.json();
+            if (orsData && orsData.features && orsData.features.length > 0) {
+                const feature = orsData.features[0];
+                return {
+                    coordinates: feature.geometry.coordinates, // [lng, lat]
+                    district: feature.properties?.county || feature.properties?.region || feature.properties?.locality || ""
+                };
+            }
+
             return null;
         } catch (error) {
             console.error("Geocoding error:", error);
@@ -127,18 +165,52 @@ const Checkout = () => {
             setCalculatingDelivery(true);
             const deliveryFees = {};
             
-            const buyerCoords = await geocodeAddress(address);
+            const geocodeResult = await geocodeAddress(address);
             
-            if (buyerCoords) {
+            if (geocodeResult) {
+                const buyerCoords = geocodeResult.coordinates;
+                const buyerDistrict = geocodeResult.district;
+
                 let nearestHub = null;
                 let minDistance = Infinity;
+
+                const hubCoverage = {
+                    "Visakhapatnam": ["vizag", "visakhapatnam", "vizianagaram", "srikakulam", "anakapalli"],
+                    "Rajahmundry": ["east godavari", "west godavari", "konaseema", "eluru", "kakinada"],
+                    "Vijayawada": ["ntr", "krishna"],
+                    "Guntur": ["guntur", "palnadu", "bapatla"],
+                    "Nellore": ["nellore", "prakasam"],
+                    "Tirupati": ["tirupati", "chittoor", "annamayya"],
+                    "Kadapa": ["ysr kadapa", "kadapa", "ysr"],
+                    "Kurnool": ["kurnool", "nandyal"],
+                    "Anantapur": ["anantapur", "sri sathya sai"]
+                };
+
+                let assignedHubName = null;
+                const searchStr = (buyerDistrict || "") + " " + address;
+                const distLower = searchStr.toLowerCase();
                 
-                for (const hub of hubs) {
-                    const dist = getHaversineDistance(buyerCoords, hub.coordinates);
-                    if (dist < minDistance) {
-                        minDistance = dist;
-                        nearestHub = hub;
+                for (const [hubName, districts] of Object.entries(hubCoverage)) {
+                    if (districts.some(d => distLower.includes(d))) {
+                        assignedHubName = hubName;
+                        break;
                     }
+                }
+
+                if (assignedHubName) {
+                    nearestHub = hubs.find(h => h.name.toLowerCase() === assignedHubName.toLowerCase());
+                }
+
+                if (!nearestHub) {
+                    for (const hub of hubs) {
+                        const dist = getHaversineDistance(buyerCoords, hub.coordinates);
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            nearestHub = hub;
+                        }
+                    }
+                } else {
+                    minDistance = getHaversineDistance(buyerCoords, nearestHub.coordinates);
                 }
 
                 let drivingDistance = await getDistance(nearestHub.coordinates, buyerCoords);
@@ -456,3 +528,4 @@ const Checkout = () => {
 };
 
 export default Checkout;
+

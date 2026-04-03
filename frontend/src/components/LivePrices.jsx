@@ -10,17 +10,17 @@ const LivePrices = () => {
   useEffect(() => {
     const fetchPrices = async () => {
       try {
-        const statusRes = await fetch("http://localhost:3000/api/market/status");
+        const statusRes = await fetch("/api/market/status");
         if (statusRes.ok) {
             const statusData = await statusRes.json();
             setLastUpdated(statusData.prices);
         }
 
-        const response = await fetch("http://localhost:3000/api/market/prices?limit=4");
+        const response = await fetch("/api/market/prices?limit=4");
         
         // Fetch explicit commodities
-        const mangoRes = await fetch("http://localhost:3000/api/market/prices?commodity=Mango&limit=1");
-        const melonRes = await fetch("http://localhost:3000/api/market/prices?commodity=Water%20Melon&limit=1");
+        const mangoRes = await fetch("/api/market/prices?commodity=Mango&limit=1");
+        const melonRes = await fetch("/api/market/prices?commodity=Water%20Melon&limit=1");
 
         let allRecords = [];
 
@@ -128,3 +128,4 @@ const LivePrices = () => {
 };
 
 export default LivePrices;
+

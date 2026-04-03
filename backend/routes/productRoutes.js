@@ -151,6 +151,17 @@ router.get('/search', async (req, res) => {
 });
 
 // Other routes (Marketplace, Details, Reviews)
+router.get('/my-products', auth, async (req, res) => {
+    try {
+        if (req.user.role !== 'farmer') return res.status(403).json({ message: 'Only farmers can view their products.' });
+        const products = await Product.find({ farmer: req.user.id }).sort({ createdAt: -1 });
+        res.json(products);
+    } catch (error) {
+        console.error('Error in /my-products:', error);
+        res.status(500).json({ message: 'Server Error', error: error.message });
+    }
+});
+
 router.get('/marketplace', async (req, res) => {
     try {
         const products = await Product.find({ 
@@ -203,15 +214,6 @@ router.post('/', auth, async (req, res) => {
     }
 });
 
-router.get('/my-products', auth, async (req, res) => {
-    try {
-        if (req.user.role !== 'farmer') return res.status(403).json({ message: 'Only farmers can view their products.' });
-        const products = await Product.find({ farmer: req.user.id }).sort({ createdAt: -1 });
-        res.json(products);
-    } catch (error) {
-        res.status(500).json({ message: 'Server Error' });
-    }
-});
 
 router.put('/:id', auth, async (req, res) => {
     try {
