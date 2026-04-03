@@ -2,10 +2,16 @@
 // This is a simple Node.js script to test the Government Mandi API key.
 // Run this file using: node test_api_key.js
 
-const API_KEY = '579b464db66ec23bdd0000010b20bb244f5c44356a56e0c0d8129ed0'; // Replace with your actual key if different
+require('dotenv').config({ path: require('path').join(__dirname, 'backend', '.env') });
+
+const API_KEY = process.env.GOVT_API_KEY;
 const COMMODITY = 'tomato';
 
 async function testApiKey() {
+    if (!API_KEY) {
+        console.error('❌ GOVT_API_KEY not found in environment. Check backend/.env');
+        process.exit(1);
+    }
     try {
         console.log(`Testing API Key for commodity: ${COMMODITY}...`);
         const url = `https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070?api-key=${API_KEY}&format=json&limit=1&filters[commodity]=${COMMODITY}`;

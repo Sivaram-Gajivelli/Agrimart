@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment variables - NEVER COMMIT THESE
+.env
+**/.env
+*.env
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# Log files (may contain sensitive info)
+*.log
+logs/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
