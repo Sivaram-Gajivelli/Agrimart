@@ -50,7 +50,11 @@ const orderSchema = new mongoose.Schema({
     },
     trackingStatus: {
         type: String,
-        enum: ['Order Placed', 'Processing', 'Quality Checked', 'Packed', 'Ready for Pickup', 'Completed', 'Cancelled'],
+        enum: [
+            'Order Placed', 'Processing', 'Farmer Packed', 'Ready for Pickup',
+            'Picked Up', 'Delivered to Hub', 'Quality Checked', 'Hub Packed',
+            'Ready for Delivery', 'Out for Delivery', 'Delivered', 'Completed', 'Cancelled'
+        ],
         default: 'Order Placed'
     },
     deliveryAddress: {

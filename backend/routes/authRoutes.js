@@ -273,6 +273,7 @@ router.post("/send-email-verify", otpLimiter, async (req, res) => {
       `
     }).catch(err => console.error("Background Email Sending Failed:", err));
 
+    console.log(`[AUTH] EMAIL OTP FOR ${email}: ${otp}`);
     return res.json({ message: "Verification OTP sent successfully", otp });
 
   } catch (err) {
@@ -345,6 +346,7 @@ router.post("/send-mobile-otp", otpLimiter, async (req, res) => {
       { upsert: true, new: true }
     );
 
+    console.log(`[AUTH] MOBILE OTP FOR ${phone}: ${otp}`);
     return res.json({ message: "OTP sent successfully", otp });
 
   } catch (err) {
@@ -495,6 +497,12 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
       sameSite: "strict", // Protects against CSRF
       maxAge: 24 * 60 * 60 * 1000 // 1 day in milliseconds
     });
+
+    // Set isOnline to true for delivery agents
+    if (user.role === 'delivery_partner') {
+      user.isOnline = true;
+      await user.save();
+    }
 
     return res.json({
       role: user.role,
@@ -705,13 +713,22 @@ router.get("/check-auth", auth, async (req, res) => {
 // =======================
 // LOGOUT (Clear Cookie)
 // =======================
-router.post("/logout", (req, res) => {
-  res.clearCookie("token", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict"
-  });
-  res.json({ message: "Logged out successfully" });
+router.post("/logout", auth, async (req, res) => {
+  try {
+    // Set isOnline to false if user is a delivery agent
+    if (req.user && req.user.role === 'delivery_partner') {
+      await userModel.findByIdAndUpdate(req.user.id, { isOnline: false });
+    }
+
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict"
+    });
+    res.json({ message: "Logged out successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Logout error" });
+  }
 });
 
 module.exports = router;

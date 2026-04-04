@@ -2,8 +2,16 @@ const express = require('express');
 const router = express.Router();
 const Order = require('../models/orderModel');
 const Product = require('../models/productModel');
+const User = require('../models/userModel');
+const DeliveryAssignment = require('../models/deliveryAssignmentModel');
 const auth = require('../middleware/authMiddleware');
 const { sendOrderConfirmationEmail, sendOrderCancellationEmail } = require('../utils/emailService');
+const nodemailer = require('nodemailer');
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+});
 
 // @route   POST /api/orders
 // @desc    Place a new order
@@ -152,7 +160,7 @@ router.get('/customer', auth, async (req, res) => {
 });
 
 // @route   PUT /api/orders/:id/status
-// @desc    Update order tracking status
+// @desc    Update order tracking status (Farmer actions: Processing, Farmer Packed, Ready for Pickup)
 // @access  Private (Farmer only)
 router.put('/:id/status', auth, async (req, res) => {
     try {
@@ -162,10 +170,11 @@ router.put('/:id/status', auth, async (req, res) => {
 
         const { trackingStatus } = req.body;
 
-        const validStatuses = ['Order Placed', 'Processing', 'Quality Checked', 'Packed', 'Ready for Pickup', 'Completed', 'Cancelled'];
+        // Farmer is only allowed to advance through these statuses
+        const farmerAllowedStatuses = ['Processing', 'Farmer Packed', 'Ready for Pickup'];
 
-        if (!validStatuses.includes(trackingStatus)) {
-            return res.status(400).json({ message: 'Invalid tracking status' });
+        if (!farmerAllowedStatuses.includes(trackingStatus)) {
+            return res.status(400).json({ message: 'Invalid tracking status for farmer' });
         }
 
         const order = await Order.findById(req.params.id);
@@ -182,6 +191,54 @@ router.put('/:id/status', auth, async (req, res) => {
 
         order.trackingStatus = trackingStatus;
         await order.save();
+
+        // 🚀 NEW: AUTOMATIC DELIVERY ASSIGNMENT 
+        if (trackingStatus === 'Ready for Pickup') {
+            try {
+                // Find active and online delivery agents
+                const onlineAgents = await User.find({ role: 'delivery_partner', status: 'active', isOnline: true });
+
+                if (onlineAgents.length > 0) {
+                    // Pick the agent with fewest active assignments (Assigned/Picked Up)
+                    const agentStats = await Promise.all(onlineAgents.map(async (agent) => {
+                        const activeCount = await DeliveryAssignment.countDocuments({ 
+                            agent: agent._id, 
+                            status: { $in: ['Assigned', 'Picked Up'] } 
+                        });
+                        return { agent, activeCount };
+                    }));
+
+                    // Sort by activeCount
+                    agentStats.sort((a, b) => a.activeCount - b.activeCount);
+                    const selectedAgent = agentStats[0].agent;
+
+                    // Create Assignment
+                    const newAssignment = new DeliveryAssignment({
+                        order: order._id,
+                        agent: selectedAgent._id,
+                        type: 'Pickup',
+                        status: 'Assigned'
+                    });
+                    await newAssignment.save();
+
+                    // Optional: Email the delivery agent too
+                    if (selectedAgent.email) {
+                        transporter.sendMail({
+                            from: process.env.EMAIL_USER,
+                            to: selectedAgent.email,
+                            subject: 'New Delivery Assignment: Order Ready for Pickup',
+                            html: `<h3>New Assignment</h3>
+                                <p>Order <strong>#${order._id.toString().slice(-8).toUpperCase()}</strong> is ready for pickup.</p>
+                                <p>Please check your dashboard for details.</p>`
+                        }).catch(e => console.error('Agent Email Error:', e));
+                    }
+                }
+            } catch (assignError) {
+                console.error('Auto-assignment failed:', assignError);
+                // We don't fail the order status update if assignment fails, 
+                // but we might want to log it for Admin.
+            }
+        }
 
         res.json(order);
     } catch (error) {
@@ -210,7 +267,7 @@ router.put('/:id/cancel', auth, async (req, res) => {
             return res.status(401).json({ message: 'Not authorized to cancel this order' });
         }
 
-        if (!['Order Placed', 'Processing'].includes(order.trackingStatus)) {
+        if (!['Order Placed', 'Processing', 'Farmer Packed'].includes(order.trackingStatus)) {
             return res.status(400).json({ message: 'Order cannot be cancelled at this stage. Please contact support.' });
         }
 

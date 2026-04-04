@@ -32,6 +32,10 @@ const userSchema = new mongoose.Schema(
       enum: ["pending", "active", "blocked", "rejected"],
       default: "active"
     },
+    isOnline: {
+      type: Boolean,
+      default: false
+    },
 
     // 🔹 Email Verification
     isVerified: {
@@ -51,6 +55,21 @@ const userSchema = new mongoose.Schema(
     mobileOTPExpires: Date,
     address: {
       type: String,
+      required: false
+    },
+    
+    // 🔹 Delivery Agent specifics (Only populated if role is delivery_partner)
+    vehicleType: {
+      type: String,
+      required: false
+    },
+    vehicleNumber: {
+      type: String,
+      required: false
+    },
+    assignedHub: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Hub',
       required: false
     }
   },

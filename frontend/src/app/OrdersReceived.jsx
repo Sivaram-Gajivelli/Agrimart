@@ -42,28 +42,138 @@ const getProductImage = (productName) => {
     return null;
 };
 
+/**
+ * Ordered sequence of statuses an order progresses through.
+ */
+const STATUS_FLOW = [
+    'Product Listed',
+    'Order Placed',
+    'Processing',
+    'Farmer Packed', // Displayed as 'Packed'
+    'Ready for Pickup',
+    'Completed'
+];
+
+/**
+ * Color map for each status badge variant.
+ */
+const STATUS_BADGE_STYLE = {
+    'Order Placed':      { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
+    'Processing':        { bg: '#fefce8', color: '#a16207', border: '#fde68a' },
+    'Farmer Packed':     { bg: '#fdf4ff', color: '#86198f', border: '#f5d0fe' },
+    'Ready for Pickup':  { bg: '#fff7ed', color: '#9a3412', border: '#fed7aa' },
+    'Picked Up':         { bg: '#f0f9ff', color: '#0369a1', border: '#bae6fd' },
+    'Delivered to Hub':  { bg: '#fdf4ff', color: '#701a75', border: '#f5d0fe' },
+    'Quality Checked':   { bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
+    'Hub Packed':        { bg: '#faf5ff', color: '#6b21a8', border: '#e9d5ff' },
+    'Ready for Delivery': { bg: '#fff1f2', color: '#9f1239', border: '#fecdd3' },
+    'Out for Delivery':  { bg: '#f0f9ff', color: '#0369a1', border: '#bae6fd' },
+    'Delivered':         { bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
+    'Completed':         { bg: '#f0fdf4', color: '#065f46', border: '#6ee7b7' },
+    'Cancelled':         { bg: '#fff1f2', color: '#9f1239', border: '#fecdd3' },
+};
+
+/**
+ * Renders a horizontal row of action badge buttons representing each step in the order lifecycle.
+ * Tailored for Farmers: only allows specific farmer-owned transitions.
+ */
+const StatusActionBar = ({ order, onUpdate }) => {
+    const isCancelled = order.trackingStatus === 'Cancelled';
+    const getEffectiveIndex = (status) => {
+        const idx = STATUS_FLOW.indexOf(status);
+        if (idx !== -1) return idx;
+        
+        // Map intermediate logistics statuses to the last farmer milestone or first relevant one
+        const intermediateToMilestone = {
+            'Picked Up': 4,          // Ready for Pickup
+            'Delivered to Hub': 4,
+            'Quality Checked': 4,
+            'Hub Packed': 4,
+            'Ready for Delivery': 4,
+            'Out for Delivery': 4,
+            'Delivered': 4,
+        };
+        return intermediateToMilestone[status] || 0;
+    };
+
+    const currentIdx = getEffectiveIndex(order.trackingStatus);
+
+    if (isCancelled) {
+        return (
+            <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #fecdd3', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ padding: '4px 12px', borderRadius: '999px', background: '#fff1f2', color: '#9f1239', border: '1px solid #fecdd3', fontSize: '0.75rem', fontWeight: 700 }}>Order Cancelled</span>
+            </div>
+        );
+    }
+
+    return (
+        <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e5e7eb' }}>
+            <p style={{ fontSize: '0.7rem', color: '#6b7280', marginBottom: '8px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Update Status</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                {STATUS_FLOW.map((s, i) => {
+                    const isPast = i < currentIdx;
+                    const isCurrent = i === currentIdx;
+                    const isNext = i === currentIdx + 1;
+                    const isLast = i === STATUS_FLOW.length - 1;
+
+                    // Farmers can only trigger these specific next-step actions
+                    const isFarmerAction = ['Processing', 'Farmer Packed', 'Ready for Pickup'].includes(s);
+
+                    let bg = '#f3f4f6';
+                    let color = '#9ca3af';
+                    let border = '#e5e7eb';
+                    let cursor = 'default';
+                    let fontWeight = 500;
+
+                    const displayLabel = s === 'Farmer Packed' ? 'Packed' : s;
+
+                    if (isPast) {
+                        bg = '#d1fae5'; color = '#065f46'; border = '#6ee7b7'; fontWeight = 600;
+                    } else if (isCurrent) {
+                        bg = '#10b981'; color = '#fff'; border = '#059669'; fontWeight = 700;
+                    } else if (isNext) {
+                        if (isFarmerAction) {
+                            bg = '#f59e0b'; color = '#fff'; border = '#d97706'; cursor = 'pointer'; fontWeight = 700;
+                        } else {
+                            bg = '#f3f4f6'; color = '#9ca3af'; border = '#e5e7eb'; cursor = 'not-allowed';
+                        }
+                    }
+
+                    const connectorColor = isPast ? '#6ee7b7' : '#e5e7eb';
+                    const arrowColor = isPast ? '#10b981' : '#d1d5db';
+
+                    return (
+                        <React.Fragment key={s}>
+                            <button
+                                onClick={() => (isNext && isFarmerAction) ? onUpdate(order._id, s) : undefined}
+                                disabled={!isNext || !isFarmerAction}
+                                style={{
+                                    padding: '5px 12px', borderRadius: '999px', border: `1px solid ${border}`, background: bg, color, fontWeight, fontSize: '0.7rem', cursor, transition: '0.15s',
+                                    boxShadow: (isNext && isFarmerAction) ? '0 2px 6px rgba(245,158,11,0.35)' : 'none',
+                                    transform: (isNext && isFarmerAction) ? 'scale(1.04)' : 'none',
+                                }}
+                            >
+                                {isPast ? '✓ ' : ''}{displayLabel}
+                            </button>
+                            {!isLast && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                    <div style={{ width: '12px', height: '2px', background: connectorColor }} />
+                                    <svg width="6" height="8" viewBox="0 0 8 12" fill="none">
+                                        <path d="M1 1L7 6L1 11" stroke={arrowColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                </div>
+                            )}
+                        </React.Fragment>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
 const OrdersReceived = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
-
-    const validStatuses = ['Order Placed', 'Processing', 'Quality Checked', 'Packed', 'Ready for Pickup', 'Completed', 'Cancelled'];
-    
-    const trackingSteps = [
-        'Product Listed', 
-        'Order Placed', 
-        'Processing', 
-        'Quality Checked', 
-        'Packed', 
-        'Ready for Pickup', 
-        'Completed'
-    ];
-
-    const getStepIndex = (status) => {
-        if (status === 'Cancelled') return -1;
-        // 'Product Listed' is implicitly done when an order exists
-        const index = trackingSteps.indexOf(status);
-        return index !== -1 ? index : 1; 
-    };
 
     const fetchData = async () => {
         try {
@@ -154,9 +264,14 @@ const OrdersReceived = () => {
             case 'Product Listed': return '#10b981';
             case 'Order Placed': return '#f59e0b';
             case 'Processing': return '#3b82f6';
-            case 'Quality Checked': return '#8b5cf6';
-            case 'Packed': return '#d946ef';
-            case 'Ready for Pickup': return '#ecc94b';
+            case 'Farmer Packed': return '#8b5cf6';
+            case 'Ready for Pickup': return '#d946ef';
+            case 'Delivered to Hub': return '#0ea5e9';
+            case 'Quality Checked': return '#6366f1';
+            case 'Hub Packed': return '#a855f7';
+            case 'Ready for Delivery': return '#f43f5e';
+            case 'Out for Delivery': return '#3b82f6';
+            case 'Delivered': return '#10b981';
             case 'Completed': return '#10b981';
             case 'Cancelled': return '#ef4444';
             default: return '#64748b';
@@ -230,76 +345,16 @@ const OrdersReceived = () => {
                                     </div>
                                 </div>
 
-                                <div style={{ flex: '1 1 100%', marginTop: '20px', marginBottom: '20px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative', padding: '0 10px' }}>
-                                        {/* Connecting Line */}
-                                        <div style={{ position: 'absolute', top: '15px', left: '30px', right: '30px', height: '4px', background: '#e2e8f0', zIndex: 0 }}></div>
-                                        <div style={{ 
-                                            position: 'absolute', 
-                                            top: '15px', 
-                                            left: '30px', 
-                                            width: order.trackingStatus === 'Cancelled' ? '0%' : `calc(${(getStepIndex(order.trackingStatus) / (trackingSteps.length - 1)) * 100}% - 30px)`, 
-                                            height: '4px', 
-                                            background: order.trackingStatus === 'Cancelled' ? 'transparent' : '#10b981', 
-                                            zIndex: 0,
-                                            transition: 'width 0.3s ease'
-                                        }}></div>
-
-                                        {trackingSteps.map((step, index) => {
-                                            const currentStepIndex = getStepIndex(order.trackingStatus);
-                                            const isCompleted = order.trackingStatus !== 'Cancelled' && index <= currentStepIndex;
-                                            const isCurrent = order.trackingStatus !== 'Cancelled' && index === currentStepIndex;
-                                            const isCancelled = order.trackingStatus === 'Cancelled';
-
-                                            return (
-                                                <div key={step} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, width: '60px', textAlign: 'center' }}>
-                                                    <div style={{ 
-                                                        width: '30px', 
-                                                        height: '30px', 
-                                                        borderRadius: '50%', 
-                                                        background: isCancelled ? '#ef4444' : (isCompleted ? '#10b981' : 'white'),
-                                                        border: isCancelled ? '3px solid #ef4444' : (isCompleted ? '3px solid #10b981' : '3px solid #cbd5e1'),
-                                                        color: isCancelled || isCompleted ? 'white' : 'transparent',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        marginBottom: '8px',
-                                                        transition: 'all 0.3s ease'
-                                                    }}>
-                                                        {(isCompleted || isCancelled) && <span style={{ fontSize: '14px' }}>✓</span>}
-                                                    </div>
-                                                    <span style={{ 
-                                                        fontSize: '0.75rem', 
-                                                        fontWeight: isCurrent ? 'bold' : 'normal',
-                                                        color: isCancelled && index === currentStepIndex ? '#ef4444' : (isCompleted ? 'var(--text-dark)' : '#94a3b8'),
-                                                        wordWrap: 'break-word',
-                                                        lineHeight: '1.1'
-                                                    }}>
-                                                        {step}
-                                                    </span>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-
-                                <div style={{ flex: '1 1 100%', borderTop: '1px solid #e2e8f0', paddingTop: '15px', marginTop: '10px', display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                    <label style={{ fontWeight: 'bold', color: 'var(--text-dark)' }}>Order Status:</label>
+                                <div style={{ flex: '1 1 100%', borderTop: '1px solid #e2e8f0', paddingTop: '15px', marginTop: '10px' }}>
                                     {order.isProductOnly ? (
-                                        <div style={{ flex: 1, color: 'var(--text-dark)' }}>
-                                            {order.trackingStatus}
+                                        <div style={{ color: '#64748b', fontSize: '0.9rem', fontStyle: 'italic' }}>
+                                            Status: Product Listed & Waiting for Orders
                                         </div>
                                     ) : (
-                                        <select
-                                            value={order.trackingStatus}
-                                            onChange={(e) => handleStatusChange(order._id, e.target.value)}
-                                            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', background: 'white', flex: 1, maxWidth: '250px' }}
-                                            disabled={order.trackingStatus === 'Completed' || order.trackingStatus === 'Cancelled'}
-                                        >
-                                            {validStatuses.map(status => (
-                                                <option key={status} value={status}>{status}</option>
-                                            ))}
-                                        </select>
+                                        <>
+                                            <h4 style={{ margin: '0 0 10px 0', color: '#64748b', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Order Progress & Actions</h4>
+                                            <StatusActionBar order={order} onUpdate={handleStatusChange} />
+                                        </>
                                     )}
                                 </div>
                             </div>
@@ -312,4 +367,3 @@ const OrdersReceived = () => {
 };
 
 export default OrdersReceived;
-

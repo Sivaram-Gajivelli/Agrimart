@@ -44,6 +44,7 @@ const AdminLayout = () => {
     { path: '/admin/orders', name: 'Orders', icon: <ShoppingCart size={20} /> },
     { path: '/admin/hubs', name: 'Hubs', icon: <MapPin size={20} /> },
     { path: '/admin/deliveries', name: 'Delivery Management', icon: <Truck size={20} /> },
+    { path: '/admin/assigned-orders', name: 'Assigned Orders', icon: <Package size={20} /> },
     { path: '/admin/payments', name: 'Payments', icon: <CreditCard size={20} /> },
     { path: '/admin/complaints', name: 'Complaints', icon: <MessageSquare size={20} /> },
     { path: '/admin/reports', name: 'Reports & Analytics', icon: <BarChart size={20} /> },

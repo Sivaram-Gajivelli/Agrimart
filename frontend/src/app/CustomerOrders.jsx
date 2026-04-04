@@ -45,29 +45,55 @@ const getProductImage = (productName) => {
 };
 
 const getTimelineSteps = (status) => {
-    const defaultStatus = status || 'Processing';
     const steps = [
-        { label: 'Order Placed', completed: true, active: false },
-        { label: 'Processing', completed: false, active: false },
-        { label: 'Out for Delivery', completed: false, active: false },
-        { label: 'Delivered', completed: false, active: false }
+        { label: 'Order Placed', key: 'Order Placed' },
+        { label: 'Processing', key: 'Processing' },
+        { label: 'In Transit to Hub', key: 'Picked Up' },
+        { label: 'At Hub (QC)', key: 'Quality Checked' },
+        { label: 'Out for Delivery', key: 'Out for Delivery' },
+        { label: 'Delivered', key: 'Delivered' }
     ];
 
-    if (defaultStatus === 'Cancelled') return null;
+    if (status === 'Cancelled') return null;
 
-    if (['Processing', 'Quality Checked', 'Packed'].includes(defaultStatus)) {
-        steps[1].active = true;
-    } else if (defaultStatus === 'Ready for Pickup') {
-        steps[1].completed = true;
-        steps[2].active = true;
-    } else if (defaultStatus === 'Completed') {
-        steps[1].completed = true;
-        steps[2].completed = true;
-        steps[3].completed = true;
-        steps[3].active = true;
-    }
+    const statusOrder = [
+        'Order Placed', 
+        'Processing', 
+        'Farmer Packed', 
+        'Ready for Pickup', 
+        'Picked Up', 
+        'Delivered to Hub', 
+        'Quality Checked', 
+        'Hub Packed', 
+        'Ready for Delivery', 
+        'Out for Delivery', 
+        'Delivered', 
+        'Completed'
+    ];
 
-    return steps;
+    const currentIdx = statusOrder.indexOf(status);
+    
+    return steps.map((step, index) => {
+        let completed = false;
+        let active = false;
+
+        // Custom mapping for milestone completion
+        if (index === 0) completed = true; // Order Placed is always done
+        if (index === 1 && currentIdx >= 1) completed = true; // Processing milestone
+        if (index === 2 && currentIdx >= 4) completed = true; // In Transit milestone (Picked Up)
+        if (index === 3 && currentIdx >= 6) completed = true; // At Hub milestone (Quality Checked)
+        if (index === 4 && currentIdx >= 9) completed = true; // Out for Delivery milestone
+        if (index === 5 && currentIdx >= 10) completed = true; // Delivered milestone
+
+        // Set active status
+        if (index === 1 && currentIdx >= 1 && currentIdx < 4) active = true;
+        if (index === 2 && currentIdx >= 4 && currentIdx < 6) active = true;
+        if (index === 3 && currentIdx >= 6 && currentIdx < 9) active = true;
+        if (index === 4 && currentIdx === 9) active = true;
+        if (index === 5 && currentIdx >= 10) active = true;
+
+        return { ...step, completed, active };
+    });
 };
 
 const CustomerOrders = () => {
@@ -275,9 +301,19 @@ const CustomerOrders = () => {
                                             zIndex: 2,
                                             borderRadius: '2px',
                                             transition: 'width 0.5s ease-in-out',
-                                            width: order.trackingStatus === 'Completed' ? 'calc(100% - 80px)' : 
-                                                   order.trackingStatus === 'Ready for Pickup' ? 'calc(66% - 53px)' : 
-                                                   ['Processing', 'Quality Checked', 'Packed'].includes(order.trackingStatus || 'Processing') ? 'calc(33% - 26px)' : '0%'
+                                            width: (() => {
+                                                const statusOrder = ['Order Placed', 'Processing', 'Farmer Packed', 'Ready for Pickup', 'Picked Up', 'Delivered to Hub', 'Quality Checked', 'Hub Packed', 'Ready for Delivery', 'Out for Delivery', 'Delivered', 'Completed'];
+                                                const currentIdx = statusOrder.indexOf(order.trackingStatus);
+                                                if (currentIdx <= 0) return '0%';
+                                                if (currentIdx >= 10) return '100%';
+                                                // Map indexes to percentage for 6 milestones
+                                                if (currentIdx < 1) return '0%'; // Placed
+                                                if (currentIdx < 4) return '20%'; // Processing
+                                                if (currentIdx < 6) return '40%'; // In Transit
+                                                if (currentIdx < 9) return '60%'; // At Hub
+                                                if (currentIdx < 10) return '80%'; // Out for Delivery
+                                                return '100%';
+                                            })()
                                         }}></div>
 
                                         {getTimelineSteps(order.trackingStatus).map((step, index) => (

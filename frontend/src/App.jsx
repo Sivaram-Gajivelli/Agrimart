@@ -40,7 +40,19 @@ import AdminUsers from "./admin/AdminUsers";
 import AdminProducts from "./admin/AdminProducts";
 import AdminOrders from "./admin/AdminOrders";
 import AdminHubs from "./admin/AdminHubs";
+import AdminDeliveries from "./admin/AdminDeliveries";
+import AdminAssignedOrders from "./admin/AdminAssignedOrders";
 import AdminSettings from "./admin/AdminSettings";
+
+/**
+ * Delivery Agent portal imports
+ */
+import DeliveryLogin from "./delivery/DeliveryLogin";
+import DeliveryLayout from "./delivery/DeliveryLayout";
+import DeliveryDashboard from "./delivery/DeliveryDashboard";
+import AssignedOrders from "./delivery/AssignedOrders";
+import DeliveryHistory from "./delivery/DeliveryHistory";
+import DeliveryProfile from "./delivery/DeliveryProfile";
 
 function App() {
   return (
@@ -91,9 +103,21 @@ function App() {
               <Route path="dashboard" element={<AdminDashboard />} />
               <Route path="users" element={<AdminUsers />} />
               <Route path="products" element={<AdminProducts />} />
-              <Route path="orders" element={<AdminOrders />} />
+               <Route path="orders" element={<AdminOrders />} />
               <Route path="hubs" element={<AdminHubs />} />
+              <Route path="deliveries" element={<AdminDeliveries />} />
+              <Route path="assigned-orders" element={<AdminAssignedOrders />} />
               <Route path="settings" element={<AdminSettings />} />
+            </Route>
+
+            {/* Delivery Agent Authentication and Dashboard Routes */}
+            <Route path="/delivery/login" element={<DeliveryLogin />} />
+            <Route path="/delivery" element={<DeliveryLayout />}>
+              <Route index element={<Navigate to="/delivery/dashboard" replace />} />
+              <Route path="dashboard" element={<DeliveryDashboard />} />
+              <Route path="assigned" element={<AssignedOrders />} />
+              <Route path="history" element={<DeliveryHistory />} />
+              <Route path="profile" element={<DeliveryProfile />} />
             </Route>
           </Routes>
         </CartProvider>

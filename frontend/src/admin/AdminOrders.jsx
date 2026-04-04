@@ -11,9 +11,15 @@ import '../assets/styles/AdminUsers.css';
 const STATUS_FLOW = [
     'Order Placed',
     'Processing',
-    'Quality Checked',
-    'Packed',
+    'Farmer Packed',
     'Ready for Pickup',
+    'Picked Up',
+    'Delivered to Hub',
+    'Quality Checked',
+    'Hub Packed',
+    'Ready for Delivery',
+    'Out for Delivery',
+    'Delivered',
     'Completed'
 ];
 
@@ -31,13 +37,19 @@ const fmt = (n) => {
  * Color map for each status badge variant.
  */
 const STATUS_BADGE_STYLE = {
-    'Order Placed': { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
-    'Processing':   { bg: '#fefce8', color: '#a16207', border: '#fde68a' },
-    'Quality Checked': { bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
-    'Packed':       { bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
-    'Ready for Pickup': { bg: '#fff7ed', color: '#9a3412', border: '#fed7aa' },
-    'Completed':    { bg: '#f0fdf4', color: '#065f46', border: '#6ee7b7' },
-    'Cancelled':    { bg: '#fff1f2', color: '#9f1239', border: '#fecdd3' },
+    'Order Placed':      { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
+    'Processing':        { bg: '#fefce8', color: '#a16207', border: '#fde68a' },
+    'Farmer Packed':     { bg: '#fdf4ff', color: '#86198f', border: '#f5d0fe' },
+    'Ready for Pickup':  { bg: '#fff7ed', color: '#9a3412', border: '#fed7aa' },
+    'Picked Up':         { bg: '#f0f9ff', color: '#0369a1', border: '#bae6fd' },
+    'Delivered to Hub':  { bg: '#fdf4ff', color: '#701a75', border: '#f5d0fe' },
+    'Quality Checked':   { bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
+    'Hub Packed':        { bg: '#faf5ff', color: '#6b21a8', border: '#e9d5ff' },
+    'Ready for Delivery': { bg: '#fff1f2', color: '#9f1239', border: '#fecdd3' },
+    'Out for Delivery':  { bg: '#f0f9ff', color: '#0369a1', border: '#bae6fd' },
+    'Delivered':         { bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
+    'Completed':         { bg: '#f0fdf4', color: '#065f46', border: '#6ee7b7' },
+    'Cancelled':         { bg: '#fff1f2', color: '#9f1239', border: '#fecdd3' },
 };
 
 /**
@@ -133,12 +145,18 @@ const StatusActionBar = ({ order, onUpdate }) => {
                     let cursor = 'default';
                     let fontWeight = 500;
 
+                    const isAdminRestricted = ['Processing', 'Farmer Packed', 'Ready for Pickup', 'Picked Up', 'Delivered to Hub', 'Out for Delivery', 'Delivered'].includes(s);
+
                     if (isPast) {
                         bg = '#d1fae5'; color = '#065f46'; border = '#6ee7b7'; fontWeight = 600;
                     } else if (isCurrent) {
                         bg = '#059669'; color = '#fff'; border = '#047857'; fontWeight = 700;
                     } else if (isNext) {
-                        bg = '#f59e0b'; color = '#fff'; border = '#d97706'; cursor = 'pointer'; fontWeight = 700;
+                        if (isAdminRestricted) {
+                            bg = '#f3f4f6'; color = '#9ca3af'; border = '#e5e7eb'; cursor = 'not-allowed';
+                        } else {
+                            bg = '#f59e0b'; color = '#fff'; border = '#d97706'; cursor = 'pointer'; fontWeight = 700;
+                        }
                     }
 
                     // Connector line color: green if this step is completed (past), gray otherwise
