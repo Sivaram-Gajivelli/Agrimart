@@ -79,17 +79,17 @@ const updatePrices = async () => {
                         console.log(`  -> Updated ${result.modifiedCount} products in the database.`);
                         updatedCount += result.modifiedCount;
                     } else {
-                        console.log(`  -> No valid price data found for ${commodity} in the API response.`);
+                        console.log(`  -> No valid price data found for ${dbCommodity} in the API response.`);
                     }
                 } else {
-                    console.log(`  -> No records found in API for ${commodity}. Price remains unchanged.`);
+                    console.log(`  -> No records found in API for ${dbCommodity}. Price remains unchanged.`);
                 }
                 
                 // Add a small delay to avoid hitting rate limits
                 await new Promise(resolve => setTimeout(resolve, 500));
 
             } catch (err) {
-                console.error(`Error processing ${commodity}:`, err.message);
+                console.error(`Error processing ${dbCommodity}:`, err.message);
             }
         }
 

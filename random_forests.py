@@ -7,7 +7,8 @@ import joblib
 from datetime import datetime, timedelta
 import numpy as np
 
-clean_folder = "datasets/cleaned"
+script_dir = os.path.dirname(os.path.abspath(__file__))
+clean_folder = os.path.join(script_dir, "datasets", "cleaned")
 
 all_data = []
 
@@ -85,7 +86,7 @@ print("R2 Score:", round(r2,2))
 # -----------------------------
 # SAVE MODEL DETAILS
 # -----------------------------
-with open("model_details.txt", "w") as f:
+with open(os.path.join(script_dir, "model_details.txt"), "w") as f:
     f.write(str(model))
     f.write("\n\nParameters:\n")
     f.write(str(model.get_params()))
@@ -106,7 +107,7 @@ results = pd.DataFrame({
 
 results["Predicted Price"] = results["Predicted Price"].round(2)
 
-results.to_csv("prediction_results.csv", index=False)
+results.to_csv(os.path.join(script_dir, "prediction_results.csv"), index=False)
 
 print("Prediction results saved in prediction_results.csv")
 
@@ -122,7 +123,7 @@ summary["Error"] = abs(summary["Actual Price"] - summary["Predicted Price"])
 
 summary = summary.round(2)
 
-summary.to_csv("vegetable_price_summary.csv", index=False)
+summary.to_csv(os.path.join(script_dir, "vegetable_price_summary.csv"), index=False)
 
 print("Vegetable wise summary saved in vegetable_price_summary.csv")
 
@@ -185,6 +186,6 @@ for veg_code, veg_name in veg_mapping.items():
 
 future_df = pd.DataFrame(future_predictions)
 
-future_df.to_csv("future_price_predictions.csv", index=False)
+future_df.to_csv(os.path.join(script_dir, "future_price_predictions.csv"), index=False)
 
 print("Future price predictions saved in future_price_predictions.csv")
