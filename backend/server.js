@@ -38,6 +38,8 @@ app.use("/api/dashboard", require("./routes/dashboardRoutes"));
 app.use("/api/predictions", require("./routes/predictionRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/delivery", require("./routes/deliveryRoutes"));
+app.use("/api/complaints", require("./routes/complaintRoutes"));
+app.use("/api/chatbot", require("./routes/chatbotRoutes"));
 
 // Protected Test Route
 app.get("/dashboard", auth, (req, res) => {

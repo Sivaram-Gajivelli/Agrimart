@@ -16,8 +16,8 @@ const Footer = () => {
           <ul>
             <li>Home</li>
             <li>Products</li>
-            <li>About</li>
-            <li>Contact</li>
+            <li><a href="/about" style={{ textDecoration: 'none', color: 'inherit' }}>About</a></li>
+            <li><a href="/contact" style={{ textDecoration: 'none', color: 'inherit' }}>Contact Us</a></li>
           </ul>
         </div>
 

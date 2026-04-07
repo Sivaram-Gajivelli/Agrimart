@@ -3,6 +3,7 @@ import LivePrices from '../components/LivePrices';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import PhoneticTerm from '../components/PhoneticTerm';
+import farmerBannerImage from '../assets/images/slide1.jpg';
 
 const FarmerHome = () => {
     const navigate = useNavigate();
@@ -37,8 +38,22 @@ const FarmerHome = () => {
     return (
         <>
             {/* Farmer Dashboard Header View */}
-            <div style={{ paddingTop: '100px', paddingBottom: '40px', textAlign: 'center', background: 'var(--primary-dark)', color: 'white' }}>
-                <h1 style={{ fontSize: '2.5rem', marginBottom: '10px' }}>
+            <div style={{
+                paddingTop: '60px',
+                paddingBottom: '60px',
+                textAlign: 'center',
+                color: 'white',
+                backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(${farmerBannerImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundAttachment: 'fixed',
+                minHeight: '500px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center'
+            }}>
+                <h1 style={{ fontSize: '2.5rem', marginBottom: '10px', color: '#FFFFFF', textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
                     <PhoneticTerm english="Farmer" te="ఫార్మర్" hi="फार्मर" ta="பார்மர்" kn="ಫಾರ್ಮರ್" ml="ഫാർമർ" mr="फार्मर" gu="ફાર્મર" pa="ਫਾਰਮਰ" bn="ফার্মার" or="ଫାର୍ମର୍" as="ফাৰ্মাৰ" /> <PhoneticTerm english="Portal" te="పోర్టల్" hi="पोर्टल" ta="போர்ட்டல்" kn="ಪೋರ್ಟಲ್" ml="പോർട്ടൽ" mr="पोर्टल" gu="પોર્ટલ" pa="ਪੋਰਟਲ" bn="পোর্টাল" or="ପୋର୍ଟାଲ୍" as="প’ৰ্টেল" />
                 </h1>
                 <p style={{ opacity: 0.9 }}>Manage your crops, track active listings, and stay updated on market trends.</p>

@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import CartSidebar from "./components/CartSidebar";
+import Chatbot from "./components/Chatbot";
 import { useAuth } from "./context/AuthContext";
 
 const MainLayout = () => {
@@ -21,6 +22,7 @@ const MainLayout = () => {
         </main>
         {isCustomer && !isCartPage && !isCheckoutPage && location.pathname !== '/orders' && <CartSidebar />}
       </div>
+      <Chatbot />
       <Footer />
     </div>
   );
