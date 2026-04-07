@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import PhoneticTerm from "./PhoneticTerm";
@@ -164,7 +164,7 @@ const SearchModal = ({ isOpen, onClose, triggerSearch }) => {
           try {
             // Use current UI language from HTML lang attribute
             const currentLang = document.documentElement.lang || 'en';
-            const response = await axios.get(`/api/products/search?q=${query}&lang=${currentLang}`);
+            const response = await axios.get(`/api/products/search?q=${query.trim()}&lang=${currentLang}`);
             setSuggestions(response.data.slice(0, 5));
           } catch (error) {
             console.error("Error fetching suggestions:", error);
@@ -209,7 +209,8 @@ const SearchModal = ({ isOpen, onClose, triggerSearch }) => {
               {suggestions.map((product) => (
                 <div
                   key={product._id}
-                  className="search-suggestion-item"
+                  className="search-suggestion-item notranslate"
+                  translate="no"
                   onClick={() => triggerSearch(product.productName)}
                 >
                   <div className="suggestion-content">
@@ -230,6 +231,12 @@ const Navbar = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { isAuthenticated, user, logoutContext } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isCategoryActive = (category) => {
+    const params = new URLSearchParams(location.search);
+    return location.pathname === '/products' && params.get('category') === category;
+  };
 
   const triggerSearch = (q) => {
     if (q?.trim()) {
@@ -267,46 +274,59 @@ const Navbar = () => {
           {(!isAuthenticated || !user) && (
             <>
               <li><button className="search-trigger-btn" onClick={() => setIsSearchOpen(true)} title="Search"><SearchIcon /></button></li>
-              <li><Link to="/" onClick={() => setMenuOpen(false)}><PhoneticTerm english="Home" te="హోమ్" hi="होम" ta="ஹோம்" kn="ಹೋಮ್" ml="ഹോം" mr="होम" gu="હોમ" pa="ਹੋਮ" bn="হোম" or="ହୋମ୍" as="হোম" /></Link></li>
-              <li><Link to="/about" onClick={() => setMenuOpen(false)}>About Us</Link></li>
-              <li><Link to="/products" onClick={() => setMenuOpen(false)}>Products</Link></li>
-              <li><Link to="/prices" onClick={() => setMenuOpen(false)}>Live Prices</Link></li>
-              <li><Link to="/price-prediction" onClick={() => setMenuOpen(false)}>Price Prediction</Link></li>
+              <li><NavLink to="/" onClick={() => setMenuOpen(false)} end><PhoneticTerm english="Home" te="హోమ్" hi="होम" ta="ஹோம்" kn="ಹೋಮ್" ml="ഹോം" mr="होम" gu="હોમ" pa="ਹੋਮ" bn="হোম" or="ହୋମ୍" as="হোম" /></NavLink></li>
+              <li><NavLink to="/about" onClick={() => setMenuOpen(false)}>About Us</NavLink></li>
+              <li><NavLink to="/products" onClick={() => setMenuOpen(false)}>Products</NavLink></li>
+              <li><NavLink to="/prices" onClick={() => setMenuOpen(false)}>Live Prices</NavLink></li>
+              <li><NavLink to="/price-prediction" onClick={() => setMenuOpen(false)}>Price Prediction</NavLink></li>
             </>
           )}
 
           {isAuthenticated && user?.role === "customer" && (
             <>
               <li><button className="search-trigger-btn" onClick={() => setIsSearchOpen(true)} title="Search"><SearchIcon /></button></li>
-              <li><Link to="/" onClick={() => setMenuOpen(false)}><PhoneticTerm english="Home" te="హోమ్" hi="होम" ta="ஹோம்" kn="ಹೋಮ್" ml="ഹോം" mr="होम" gu="હોમ" pa="ਹੋਮ" bn="হোম" or="ହୋମ୍" as="হোম" /></Link></li>
-              <li><Link to="/products?category=Vegetables" onClick={() => setMenuOpen(false)}>Fresh vegetables</Link></li>
-              <li><Link to="/products?category=Fruits" onClick={() => setMenuOpen(false)}>Fresh fruits</Link></li>
-              <li><Link to="/products?category=Grains %26 Pulses" onClick={() => setMenuOpen(false)}>Fresh Grains & Pulses</Link></li>
-              <li><Link to="/cart" onClick={() => setMenuOpen(false)}><PhoneticTerm english="Cart" te="కార్ట్" hi="कार्ट" ta="கார்ட்" kn="ಕಾರ್ಟ್" ml="കാർട്ട്" mr="कार्ट" gu="કાર્ટ" pa="ਕਾਰਟ" bn="কার্ট" or="କାର୍ଟ" as="কাৰ্ট" /></Link></li>
-              <li><Link to="/orders" onClick={() => setMenuOpen(false)}>Orders</Link></li>
+              <li><NavLink to="/" onClick={() => setMenuOpen(false)} end><PhoneticTerm english="Home" te="హోమ్" hi="होम" ta="ஹோம்" kn="ಹೋಮ್" ml="ഹോം" mr="होम" gu="હોમ" pa="ਹੋਮ" bn="হোম" or="ହୋମ୍" as="হোম" /></NavLink></li>
+              <li>
+                <NavLink 
+                  to="/products?category=Vegetables" 
+                  onClick={() => setMenuOpen(false)}
+                  className={() => (isCategoryActive('Vegetables') ? 'active' : '')}
+                >
+                  Fresh vegetables
+                </NavLink>
+              </li>
+              <li>
+                <NavLink 
+                  to="/products?category=Fruits" 
+                  onClick={() => setMenuOpen(false)}
+                  className={() => (isCategoryActive('Fruits') ? 'active' : '')}
+                >
+                  Fresh fruits
+                </NavLink>
+              </li>
+              <li>
+                <NavLink 
+                  to="/products?category=Grains %26 Pulses" 
+                  onClick={() => setMenuOpen(false)}
+                  className={() => (isCategoryActive('Grains & Pulses') ? 'active' : '')}
+                >
+                  Fresh Grains & Pulses
+                </NavLink>
+              </li>
+              <li><NavLink to="/cart" onClick={() => setMenuOpen(false)}><PhoneticTerm english="Cart" te="కార్ట్" hi="कार्ट" ta="கார்ட்" kn="ಕಾರ್ಟ್" ml="കാർട്ട്" mr="कार्ट" gu="કાર્ટ" pa="ਕਾਰਟ" bn="কার্ট" or="କାର୍ଟ" as="কাৰ্ট" /></NavLink></li>
+              <li><NavLink to="/orders" onClick={() => setMenuOpen(false)}>Orders</NavLink></li>
             </>
           )}
 
           {isAuthenticated && user?.role === "farmer" && (
             <>
               <li><button className="search-trigger-btn" onClick={() => setIsSearchOpen(true)} title="Search"><SearchIcon /></button></li>
-              <li><Link to="/" onClick={() => setMenuOpen(false)}><PhoneticTerm english="Home" te="హోమ్" hi="होम" ta="ஹோம்" kn="ಹೋಮ್" ml="ഹോം" mr="होम" gu="હોમ" pa="ਹੋਮ" bn="হোম" or="ହୋମ୍" as="হোম" /></Link></li>
-              <li><Link to="/sell-produce" onClick={() => setMenuOpen(false)}>Sell Produce</Link></li>
-              <li><Link to="/my-products" onClick={() => setMenuOpen(false)}>My Products</Link></li>
-              <li><Link to="/orders-received" onClick={() => setMenuOpen(false)}>Orders Received</Link></li>
-              <li><Link to="/prices" onClick={() => setMenuOpen(false)}>Live Prices</Link></li>
-              <li><Link to="/price-prediction" onClick={() => setMenuOpen(false)}>Price Prediction</Link></li>
-            </>
-          )}
-
-          {isAuthenticated && user?.role === "retailer" && (
-            <>
-              <li><button className="search-trigger-btn" onClick={() => setIsSearchOpen(true)} title="Search"><SearchIcon /></button></li>
-              <li><Link to="/" onClick={() => setMenuOpen(false)}><PhoneticTerm english="Home" te="హోమ్" hi="होम" ta="ஹோம்" kn="ಹೋಮ್" ml="ഹോം" mr="होम" gu="હોમ" pa="ਹੋਮ" bn="হোম" or="ହୋମ୍" as="হোম" /></Link></li>
-              <li><Link to="/products" onClick={() => setMenuOpen(false)}>Products</Link></li>
-              <li><Link to="/bulk-orders" onClick={() => setMenuOpen(false)}>Bulk Orders</Link></li>
-              <li><Link to="/prices" onClick={() => setMenuOpen(false)}>Live Prices</Link></li>
-              <li><Link to="/price-prediction" onClick={() => setMenuOpen(false)}>Price Prediction</Link></li>
+              <li><NavLink to="/" onClick={() => setMenuOpen(false)} end><PhoneticTerm english="Home" te="హోమ్" hi="होम" ta="ஹோம்" kn="ಹೋಮ್" ml="ഹോം" mr="होम" gu="હોમ" pa="ਹੋਮ" bn="হোম" or="ହୋମ୍" as="হোম" /></NavLink></li>
+              <li><NavLink to="/sell-produce" onClick={() => setMenuOpen(false)}>Sell Produce</NavLink></li>
+              <li><NavLink to="/my-products" onClick={() => setMenuOpen(false)}>My Products</NavLink></li>
+              <li><NavLink to="/orders-received" onClick={() => setMenuOpen(false)}>Orders Received</NavLink></li>
+              <li><NavLink to="/prices" onClick={() => setMenuOpen(false)}>Live Prices</NavLink></li>
+              <li><NavLink to="/price-prediction" onClick={() => setMenuOpen(false)}>Price Prediction</NavLink></li>
             </>
           )}
 
@@ -332,12 +352,14 @@ const Navbar = () => {
                 <button
                   className="nav-profile-btn"
                   onClick={() => {
-                    navigate("/dashboard");
+                    navigate("/profile");
                     setMenuOpen(false);
                   }}
-                  title="Dashboard"
+                  title="My Profile"
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
                   <UserIcon />
+                  <span className="profile-name-text">{user.name?.split(' ')[0]}</span>
                 </button>
               </li>
               <li>

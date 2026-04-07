@@ -73,7 +73,15 @@ const ProductItem = ({ product, navigate }) => {
             </div>
             <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                    <h3 style={{ fontSize: '1.1rem', color: '#166534', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }} title={product.productName}>{product.productName}</h3>
+                    <div style={{ flex: 1 }}>
+                        <h3 style={{ fontSize: '1.1rem', color: '#166534', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }} title={product.productName}>{product.productName}</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                            <div style={{ color: '#fbbf24', fontSize: '0.85rem' }}>
+                                {'★'.repeat(Math.round(product.rating || 0))}{'☆'.repeat(5 - Math.round(product.rating || 0))}
+                            </div>
+                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>({product.numReviews || 0})</span>
+                        </div>
+                    </div>
                     <div style={{ textAlign: 'right' }}>
                         <span style={{ fontWeight: 'bold', color: '#B12704', display: 'block' }}>₹{(product.pricePerKg * selectedWeight).toFixed(2)}</span>
                     </div>
@@ -148,7 +156,8 @@ const Products = () => {
             try {
                 let response;
                 if (searchQuery) {
-                    response = await fetch(`/api/products/search?q=${encodeURIComponent(searchQuery)}`);
+                    const currentLang = document.documentElement.lang || 'en';
+                    response = await fetch(`/api/products/search?q=${encodeURIComponent(searchQuery)}&lang=${currentLang}`);
                 } else {
                     response = await fetch('/api/products/marketplace');
                 }

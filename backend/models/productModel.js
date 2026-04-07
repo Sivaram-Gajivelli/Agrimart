@@ -27,6 +27,10 @@ const productSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    initialQuantity: {
+        type: Number,
+        required: false
+    },
     unit: {
         type: String,
         required: true,
@@ -42,10 +46,28 @@ const productSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    latitude: {
+        type: Number,
+        required: false
+    },
+    longitude: {
+        type: Number,
+        required: false
+    },
     verificationStatus: {
         type: String,
         enum: ['pending', 'quality assessment', 'verified', 'rejected'],
         default: 'pending'
+    },
+    nearestHub: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Hub',
+        required: false
+    },
+    deliveryStatus: {
+        type: String,
+        enum: ["Listed", "Packed", "Ready for Pickup", "Picked Up", "At Hub", "Verified", "Completed"],
+        default: "Listed"
     },
     reviews: [{
         user: {

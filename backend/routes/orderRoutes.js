@@ -5,7 +5,7 @@ const Product = require('../models/productModel');
 const User = require('../models/userModel');
 const DeliveryAssignment = require('../models/deliveryAssignmentModel');
 const auth = require('../middleware/authMiddleware');
-const { sendOrderConfirmationEmail, sendOrderCancellationEmail } = require('../utils/emailService');
+const { sendOrderConfirmationEmail, sendOrderCancellationEmail, sendFarmerOrderNotification } = require('../utils/emailService');
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
@@ -99,6 +99,24 @@ router.post('/', auth, async (req, res) => {
             }).catch(err => console.error("Email failed:", err));
         }
 
+        // 🚀 NEW: Notify individual Farmers about their respective items
+        try {
+            const farmersToNotify = [...new Set(processedItems.map(item => item.farmer.toString()))];
+            for (const farmerId of farmersToNotify) {
+                const farmerUser = await User.findById(farmerId);
+                if (farmerUser) {
+                    const farmerItems = processedItems.filter(item => item.farmer.toString() === farmerId);
+                    // Use the helper added to emailService.js
+                    sendFarmerOrderNotification(farmerUser, {
+                        trackingId: savedOrder._id,
+                        items: farmerItems
+                    }).catch(err => console.error(`Farmer ${farmerId} notify failed:`, err));
+                }
+            }
+        } catch (notifyErr) {
+            console.error('Farmer mass notify failed:', notifyErr);
+        }
+
         res.status(201).json(savedOrder);
 
     } catch (error) {
@@ -147,12 +165,26 @@ router.get('/customer', auth, async (req, res) => {
             return res.status(403).json({ message: 'Access denied.' });
         }
 
+        const DeliveryAssignment = require('../models/deliveryAssignmentModel');
         const orders = await Order.find({ buyer: req.user.id })
             .populate('items.farmer', 'name')
             .populate('items.product', 'productName pricePerKg unit image')
             .sort({ createdAt: -1 });
 
-        res.json(orders);
+        // 🚀 NEW: Attach Delivery Assignment ID for rating
+        const enhancedOrders = await Promise.all(orders.map(async (order) => {
+            const orderObj = order.toObject();
+            if (order.trackingStatus === 'Delivered' || order.trackingStatus === 'Completed') {
+                const deliveryAsng = await DeliveryAssignment.findOne({ order: order._id, type: 'Delivery' }).sort({ createdAt: -1 });
+                if (deliveryAsng) {
+                    orderObj.deliveryAssignmentId = deliveryAsng._id;
+                    orderObj.isRated = !!deliveryAsng.rating;
+                }
+            }
+            return orderObj;
+        }));
+
+        res.json(enhancedOrders);
     } catch (error) {
         console.error('Error fetching customer orders:', error);
         res.status(500).json({ message: 'Server Error' });
@@ -160,7 +192,7 @@ router.get('/customer', auth, async (req, res) => {
 });
 
 // @route   PUT /api/orders/:id/status
-// @desc    Update order tracking status (Farmer actions: Processing, Farmer Packed, Ready for Pickup)
+// @desc    Update order tracking status (Farmer actions: Processing)
 // @access  Private (Farmer only)
 router.put('/:id/status', auth, async (req, res) => {
     try {
@@ -171,7 +203,7 @@ router.put('/:id/status', auth, async (req, res) => {
         const { trackingStatus } = req.body;
 
         // Farmer is only allowed to advance through these statuses
-        const farmerAllowedStatuses = ['Processing', 'Farmer Packed', 'Ready for Pickup'];
+        const farmerAllowedStatuses = ['Processing'];
 
         if (!farmerAllowedStatuses.includes(trackingStatus)) {
             return res.status(400).json({ message: 'Invalid tracking status for farmer' });
@@ -193,7 +225,7 @@ router.put('/:id/status', auth, async (req, res) => {
         await order.save();
 
         // 🚀 NEW: AUTOMATIC DELIVERY ASSIGNMENT 
-        if (trackingStatus === 'Ready for Pickup') {
+        if (trackingStatus === 'Processing') {
             try {
                 // Find active and online delivery agents
                 const onlineAgents = await User.find({ role: 'delivery_partner', status: 'active', isOnline: true });
@@ -226,9 +258,9 @@ router.put('/:id/status', auth, async (req, res) => {
                         transporter.sendMail({
                             from: process.env.EMAIL_USER,
                             to: selectedAgent.email,
-                            subject: 'New Delivery Assignment: Order Ready for Pickup',
+                            subject: 'New Delivery Assignment: Order ready for Processing & Pickup',
                             html: `<h3>New Assignment</h3>
-                                <p>Order <strong>#${order._id.toString().slice(-8).toUpperCase()}</strong> is ready for pickup.</p>
+                                <p>Order <strong>#${order._id.toString().slice(-8).toUpperCase()}</strong> is processing and slotted for pickup.</p>
                                 <p>Please check your dashboard for details.</p>`
                         }).catch(e => console.error('Agent Email Error:', e));
                     }

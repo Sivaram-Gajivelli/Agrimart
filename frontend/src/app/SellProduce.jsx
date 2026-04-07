@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 // Import all images from the produce directory eagerly
 const produceImages = import.meta.glob('../assets/images/produce/*.{png,jpg,jpeg,webp,svg}', { eager: true });
@@ -12,11 +13,54 @@ for (const path in produceImages) {
 }
 
 const CATEGORY_MAPPING = {
-    'Vegetables': ['tomato', 'potato', 'onion', 'cabbage', 'carrot', 'spinach', 'brinjal', 'eggplant', 'garlic', 'ginger', 'peas', 'cucumber', 'pumpkin', 'radish', 'capsicum', 'cauliflower', 'broccoli', 'beans'],
-    'Fruits': ['apple', 'banana', 'mango', 'orange', 'grapes', 'papaya', 'watermelon', 'pomegranate', 'guava', 'pineapple', 'lemon', 'berry', 'cherry', 'strawberry', 'blueberry', 'kiwi'],
+    'Vegetables': ['tomato', 'potato', 'onion', 'cabbage', 'carrot', 'spinach', 'brinjal', 'eggplant', 'garlic', 'ginger', 'peas', 'cucumber', 'pumpkin', 'radish', 'capsicum', 'cauliflower', 'broccoli', 'beans', 'tomatoes', 'potatoes'],
+    'Fruits': ['apple', 'banana', 'mango', 'orange', 'grapes', 'papaya', 'watermelon', 'water melon', 'pomegranate', 'guava', 'pineapple', 'lemon', 'berry', 'cherry', 'strawberry', 'blueberry', 'kiwi'],
     'Grains & Pulses': ['wheat', 'rice', 'paddy', 'maize', 'corn', 'millet', 'bajra', 'jowar', 'dal', 'lentil', 'chickpea', 'gram', 'soybean', 'mustard', 'oats', 'barley'],
     'Spices': ['chilli', 'pepper', 'turmeric', 'coriander', 'cumin', 'clove', 'cardamom', 'cinnamon', 'nutmeg', 'fennel', 'saffron', 'garlic', 'ginger']
 };
+
+const LOCALIZED_SEARCH = {
+    'tomato': ['టమోటా', 'టమోటాలు', 'tamatar'],
+    'potato': ['బంగాళాదుంప', 'బంగాళాదుంపలు', 'aloo'],
+    'onion': ['ఉల్లిపాయ', 'ఉల్లిపాయలు', 'pyaaz'],
+    'brinjal': ['వంకాయ', 'వంకాయలు', 'baingan', 'eggplant'],
+    'apple': ['ఆపిల్', 'యాపిల్', 'seb'],
+    'banana': ['అరటి', 'అరటిపండు', 'kela'],
+    'rice': ['బియ్యం', 'వరి', 'paddy', 'chawal'],
+    'wheat': ['గోధుమలు', 'gehu'],
+    'chilli': ['మిరపకాయ', 'మిర్చి', 'mirch'],
+    'mango': ['మామిడి', 'మామిడిపండు', 'aam'],
+    'grapes': ['ద్రాక్ష', 'angoor'],
+    'watermelon': ['పుచ్చకాయ', 'tarbooz'],
+    'papaya': ['బొప్పాయి', 'papita'],
+    'orange': ['నారింజ', 'సంత్రా', 'santra'],
+    'cabbage': ['క్యాబేజీ', 'patta gobhi'],
+    'carrot': ['క్యారెట్', 'gajar'],
+    'spinach': ['పాలకూర', 'palak', 'paalak'],
+    'garlic': ['వెల్లుల్లి', 'lahsun'],
+    'ginger': ['అల్లం', 'adrak'],
+    'maize': ['మొక్కజొన్న', 'makka'],
+    'corn': ['మొక్కజొన్న', 'makka'],
+    'dal': ['పప్పు', 'పప్పులు'],
+    'lentil': ['పప్పు', 'పప్పులు'],
+    'turmeric': ['పసుపు', 'haldi'],
+    'coriander': ['కొత్తిమీర', 'dhaniya'],
+    'cumin': ['జీలకర్ర', 'jeera'],
+    'pepper': ['మిరియాలు', 'kali mirch'],
+    'cauliflower': ['కాలీఫ్లవర్'],
+};
+
+const PRODUCT_DATA = Object.entries(CATEGORY_MAPPING).flatMap(([category, items]) => 
+    items.map(name => {
+        const lowerName = name.toLowerCase();
+        return {
+            name: name.charAt(0).toUpperCase() + name.slice(1),
+            category,
+            image: lowerName.replace(/\s/g, '_'),
+            synonyms: LOCALIZED_SEARCH[lowerName] || []
+        };
+    })
+).filter((v, i, a) => a.findIndex(t => t.name === v.name) === i); // Deduplicate
 
 const guessCategory = (name) => {
     let lowerName = name.trim().toLowerCase();
@@ -29,7 +73,13 @@ const guessCategory = (name) => {
 };
 
 const SellProduce = () => {
+    const navigate = useNavigate();
     const [marketPrices, setMarketPrices] = useState({ min: null, max: null, modal: null, fetching: false, error: null });
+    const [englishName, setEnglishName] = useState(''); // Store translated English name from backend
+    const [pickerOpen, setPickerOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [translatedSearchQuery, setTranslatedSearchQuery] = useState('');
+    const [activeTab, setActiveTab] = useState('All');
 
     const [formData, setFormData] = useState({
         productName: '',
@@ -40,6 +90,8 @@ const SellProduce = () => {
         unit: 'kg',
         locationType: 'manual', // 'manual' or 'current'
         manualLocation: '',
+        latitude: null,
+        longitude: null,
     });
 
     const categories = ['Vegetables', 'Fruits', 'Grains & Pulses', 'Spices', 'Others'];
@@ -75,22 +127,13 @@ const SellProduce = () => {
             setMarketPrices(prev => ({ ...prev, fetching: true, error: null }));
 
             try {
-                // Basic plural normalization for the API
-                let searchCommodity = formData.productName.trim().toLowerCase();
-                if (searchCommodity.endsWith('atoes')) {
-                    searchCommodity = searchCommodity.slice(0, -2); // tomatoes -> tomato, potatoes -> potato
-                } else if (searchCommodity.endsWith('oes') && !searchCommodity.endsWith('shoes')) {
-                    searchCommodity = searchCommodity.slice(0, -2); // mangoes -> mango
-                } else if (searchCommodity.endsWith('ies')) {
-                    searchCommodity = searchCommodity.slice(0, -3) + 'y'; // berries -> berry
-                } else if (searchCommodity.endsWith('s') && !searchCommodity.endsWith('ss')) {
-                    searchCommodity = searchCommodity.slice(0, -1); // onions -> onion, apples -> apple
-                }
-
-                // Fetch securely from our Express backend instead of directly from frontend
+                // The backend handles all translation and commodity normalization.
+                // We use the englishName (translated) if available, otherwise raw input.
+                const searchCommodity = englishName || formData.productName.trim();
                 const apiUrl = `/api/market/prices?commodity=${encodeURIComponent(searchCommodity)}`;
+                console.log(`[Frontend] Fetching market prices for: ${searchCommodity}`);
 
-                const response = await fetch(apiUrl);
+                const response = await fetch(apiUrl, { credentials: 'include' });
                 if (!response.ok) throw new Error("Backend API returned an error");
 
                 const data = await response.json();
@@ -113,6 +156,11 @@ const SellProduce = () => {
                     if (min !== Infinity && max !== -Infinity) {
                         const modal = modalCount > 0 ? (modalSum / modalCount) : ((min + max) / 2);
                         setMarketPrices({ min, max, modal, fetching: false, error: null });
+                        
+                        // Set the English name if provided by backend for category/image matching
+                        if (data.translatedCommodity) {
+                            setEnglishName(data.translatedCommodity);
+                        }
                     } else {
                         setMarketPrices({ min: null, max: null, modal: null, fetching: false, error: 'Could not determine price range.' });
                     }
@@ -131,7 +179,38 @@ const SellProduce = () => {
         }, 800);
 
         return () => clearTimeout(timeoutId);
-    }, [formData.productName]);
+    }, [formData.productName, englishName]);
+
+    // NEW: Debounced Native Language Search Translation Effect
+    useEffect(() => {
+        if (!searchQuery || searchQuery.trim().length < 2) {
+            setTranslatedSearchQuery('');
+            return;
+        }
+
+        const translateSearch = async () => {
+            try {
+                const isNonEnglish = /[^\x00-\x7F]+/.test(searchQuery);
+                if (!isNonEnglish) {
+                    setTranslatedSearchQuery('');
+                    return;
+                }
+
+                const res = await fetch(`/api/market/translate?text=${encodeURIComponent(searchQuery)}`, { credentials: 'include' });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.translated && data.translated.toLowerCase() !== searchQuery.toLowerCase()) {
+                        setTranslatedSearchQuery(data.translated);
+                    }
+                }
+            } catch (err) {
+                console.error("Search Translation Error:", err);
+            }
+        };
+
+        const tId = setTimeout(translateSearch, 600); // Fast 600ms debounce for search
+        return () => clearTimeout(tId);
+    }, [searchQuery]);
 
     const getAdjustedPrices = () => {
         if (marketPrices.modal === null) return null;
@@ -162,14 +241,15 @@ const SellProduce = () => {
     }, [marketPrices.modal, formData.unit]);
 
     // Auto-match category
-    const autoCategory = guessCategory(formData.productName);
+    const autoCategory = guessCategory(formData.productName) || (englishName ? guessCategory(englishName) : '');
     useEffect(() => {
         if (autoCategory) {
             setFormData(prev => ({ ...prev, category: autoCategory }));
         } else if (!formData.productName) {
             setFormData(prev => ({ ...prev, category: '' }));
+            setEnglishName('');
         }
-    }, [autoCategory, formData.productName]);
+    }, [autoCategory, formData.productName, englishName]);
 
     const handleGetCurrentLocation = async () => {
         if (navigator.geolocation) {
@@ -178,16 +258,19 @@ const SellProduce = () => {
                 async (position) => {
                     try {
                         const { latitude, longitude } = position.coords;
-                        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                        const currentLang = document.documentElement.lang || 'en';
+                        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=${currentLang}`);
                         const data = await response.json();
 
-                        // Extract a readable address
+                        // Prefer localized display name
                         const address = data.display_name || `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`;
 
                         setFormData(prev => ({
                             ...prev,
                             locationType: 'current',
-                            manualLocation: address
+                            manualLocation: address,
+                            latitude: latitude,
+                            longitude: longitude
                         }));
                         toast.success("Location fetched successfully!");
                     } catch (error) {
@@ -195,7 +278,9 @@ const SellProduce = () => {
                         setFormData(prev => ({
                             ...prev,
                             locationType: 'current',
-                            manualLocation: `Lat: ${position.coords.latitude.toFixed(4)}, Lng: ${position.coords.longitude.toFixed(4)}`
+                            manualLocation: `Lat: ${position.coords.latitude.toFixed(4)}, Lng: ${position.coords.longitude.toFixed(4)}`,
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude
                         }));
                     }
                 },
@@ -257,7 +342,9 @@ const SellProduce = () => {
                     quantityAvailable: formData.quantityAvailable,
                     unit: formData.unit,
                     locationType: formData.locationType,
-                    manualLocation: formData.manualLocation
+                    manualLocation: formData.manualLocation,
+                    latitude: formData.latitude,
+                    longitude: formData.longitude
                 })
             });
 
@@ -269,6 +356,11 @@ const SellProduce = () => {
             console.log("Submitting Produce Data:", formData);
             toast.success("Product listed successfully!");
 
+            // 🚀 REDIRECT: Go to My Products page
+            setTimeout(() => {
+                navigate('/my-products');
+            }, 1000);
+
             // Reset form after standard submission
             setFormData({
                 productName: '',
@@ -279,6 +371,8 @@ const SellProduce = () => {
                 unit: 'kg',
                 locationType: 'manual',
                 manualLocation: '',
+                latitude: null,
+                longitude: null,
             });
 
         } catch (error) {
@@ -320,7 +414,7 @@ const SellProduce = () => {
         return null;
     };
 
-    const imageSrc = getProductImage(formData.productName);
+    const imageSrc = getProductImage(formData.productName) || (englishName ? getProductImage(englishName) : null);
     const adjustedPrices = getAdjustedPrices();
 
     return (
@@ -337,17 +431,112 @@ const SellProduce = () => {
                         </h2>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
-                            <div>
+                            <div style={{ position: 'relative' }}>
                                 <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-dark)', fontWeight: '500' }}>Product Name</label>
-                                <input
-                                    type="text"
-                                    name="productName"
-                                    value={formData.productName}
-                                    onChange={handleChange}
-                                    placeholder="e.g., Tomatoes, Wheat, Apples"
-                                    required
-                                    style={{ width: '100%', padding: '12px', border: '1px solid #ccc', borderRadius: '8px', fontSize: '1rem' }}
-                                />
+                                <div 
+                                    onClick={() => setPickerOpen(!pickerOpen)}
+                                    style={{ 
+                                        width: '100%', padding: '12px', border: '1px solid #ccc', borderRadius: '8px', fontSize: '1rem',
+                                        cursor: 'pointer', background: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                                    }}
+                                >
+                                    {formData.productName ? (
+                                        <span key={formData.productName}>{formData.productName}</span>
+                                    ) : (
+                                        <span style={{ color: '#94a3b8' }}>Select a product...</span>
+                                    )}
+
+                                    <i className={`fas ${pickerOpen ? 'fa-chevron-up' : 'fa-chevron-down'}`} style={{ fontSize: '0.8rem', color: '#64748b' }}></i>
+                                </div>
+
+                                {pickerOpen && (
+                                    <div style={{ 
+                                        position: 'absolute', top: '100%', left: 0, width: '100%', zIndex: 100, 
+                                        background: 'white', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                                        marginTop: '10px', padding: '0', border: '1px solid #e2e8f0',
+                                        maxHeight: '450px', overflowY: 'auto', boxSizing: 'border-box'
+                                    }}>
+                                        {/* Search & Tabs */}
+                                        <div style={{ 
+                                            position: 'sticky', top: 0, background: 'white', zIndex: 10, 
+                                            padding: '15px 15px 10px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
+                                        }}>
+                                            <div>
+                                                <input 
+                                                    type="text"
+                                                    placeholder="Search products (e.g. Tomato, Rice...)"
+                                                    value={searchQuery}
+                                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    style={{ width: '100%', padding: '10px 15px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '12px', boxSizing: 'border-box' }}
+                                                />
+                                                <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '5px' }}>
+                                                    {['All', ...Object.keys(CATEGORY_MAPPING)].map(cat => (
+                                                        <button
+                                                            key={cat}
+                                                            type="button"
+                                                            onClick={(e) => { e.stopPropagation(); setActiveTab(cat); }}
+                                                            style={{ 
+                                                                padding: '6px 12px', borderRadius: '20px', border: 'none', fontSize: '0.85rem', whiteSpace: 'nowrap',
+                                                                background: activeTab === cat ? 'var(--primary)' : '#f1f5f9',
+                                                                color: activeTab === cat ? 'white' : '#64748b', cursor: 'pointer'
+                                                            }}
+                                                        >
+                                                            {cat}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Product Grid */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '12px', padding: '0 15px 15px', marginTop: '10px' }}>
+                                            {PRODUCT_DATA
+                                                .filter(p => (activeTab === 'All' || p.category === activeTab))
+                                                .filter(p => {
+                                                    const s = searchQuery.toLowerCase().trim();
+                                                    const ts = translatedSearchQuery.toLowerCase().trim();
+                                                    const name = p.name.toLowerCase();
+                                                    const sy = (p.synonyms || []).some(sun => sun.toLowerCase().includes(s));
+                                                    return name.includes(s) || (ts && name.includes(ts)) || sy;
+                                                })
+                                                .map(item => (
+                                                    <div 
+                                                        key={item.name}
+                                                        onClick={() => {
+                                                            setFormData(prev => ({ ...prev, productName: item.name, category: item.category }));
+                                                            setEnglishName(item.name);
+                                                            setPickerOpen(false);
+                                                            setSearchQuery('');
+                                                        }}
+                                                        style={{ 
+                                                            padding: '10px', borderRadius: '10px', border: '1px solid #f1f5f9', textAlign: 'center', cursor: 'pointer',
+                                                            transition: 'all 0.2s', background: formData.productName === item.name ? '#f0fdf4' : 'transparent',
+                                                            borderColor: formData.productName === item.name ? 'var(--primary)' : '#f1f5f9'
+                                                        }}
+                                                        className="product-card"
+                                                    >
+                                                        <div style={{ width: '100%', aspectRatio: '1', borderRadius: '8px', overflow: 'hidden', marginBottom: '8px', background: '#f8fafc' }}>
+                                                            {getProductImage(item.name) ? (
+                                                                <img src={getProductImage(item.name)} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                            ) : (
+                                                                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                                                                    <i className="fas fa-leaf fa-2x"></i>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div style={{ fontSize: '0.85rem', fontWeight: '500', color: '#334155' }}>{item.name}</div>
+                                                    </div>
+                                                ))}
+                                        </div>
+                                        {PRODUCT_DATA.filter(p => (activeTab === 'All' || p.category === activeTab)).filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                                            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8' }}>
+                                                <i className="fas fa-search fa-3x" style={{ marginBottom: '15px', opacity: 0.3 }}></i>
+                                                <p>No products found matching "{searchQuery}"</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div>

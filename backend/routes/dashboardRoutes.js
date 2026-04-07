@@ -3,6 +3,7 @@ const router = express.Router();
 const Product = require('../models/productModel');
 const Order = require('../models/orderModel');
 const auth = require('../middleware/authMiddleware');
+const User = require('../models/userModel');
 
 // @route   GET /api/dashboard/farmer-stats
 // @desc    Get dashboard statistics for a specific farmer
@@ -18,24 +19,21 @@ router.get('/farmer-stats', auth, async (req, res) => {
         // 1. Total Products Listed
         const totalProducts = await Product.countDocuments({ farmer: farmerId });
 
-        // 2. Total Orders Received & Total Revenue
-        const orders = await Order.find({ farmer: farmerId });
+        // 2. Fetch User Profile for Revenue (Source of Truth)
+        const farmerProfile = await User.findById(farmerId).select('revenue');
+
+        // 3. Overall stats for orders
+        const allOrders = await Order.find({ 'items.farmer': farmerId });
+        const totalOrders = allOrders.length;
         
-        const totalOrders = orders.length;
-
-        // Calculate revenue (excluding cancelled orders)
-        const totalRevenue = orders
-            .filter(order => order.trackingStatus !== 'Cancelled')
-            .reduce((sum, order) => sum + (order.totalPrice || 0), 0);
-
-        // 3. Pending Orders (Assume Order Placed or Processing are pending attention)
+        // 4. Pending Orders (Assume Order Placed or Processing)
         const pendingStatuses = ['Order Placed', 'Processing'];
-        const pendingOrders = orders.filter(order => pendingStatuses.includes(order.trackingStatus)).length;
+        const pendingOrders = allOrders.filter(order => pendingStatuses.includes(order.trackingStatus)).length;
 
         res.json({
             totalProducts,
             totalOrders,
-            totalRevenue,
+            totalRevenue: farmerProfile?.revenue || 0,
             pendingOrders
         });
 

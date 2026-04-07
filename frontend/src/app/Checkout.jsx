@@ -63,8 +63,9 @@ const Checkout = () => {
 
     const geocodeAddress = async (addressText) => {
         try {
+            const currentLang = document.documentElement.lang || 'en';
             // First try Nominatim as it has better Indian locality data
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressText)}`, {
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressText)}&accept-language=${currentLang}`, {
                 headers: { 'User-Agent': 'Agrimart/1.0' }
             });
             const data = await res.json();
@@ -318,7 +319,7 @@ const Checkout = () => {
         setLoading(true);
         try {
             if (address !== user.address) {
-                    await axios.put('/api/user/update-address', { address }, { withCredentials: true });
+                    await axios.put('/api/user/profile-update', { address }, { withCredentials: true });
             }
 
             const checkoutItems = validItems.map(item => {
@@ -368,7 +369,8 @@ const Checkout = () => {
                 async (position) => {
                     try {
                         const { latitude, longitude } = position.coords;
-                        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                        const currentLang = document.documentElement.lang || 'en';
+                        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=${currentLang}`);
                         const data = await response.json();
                         const addr = data.display_name || `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`;
                         setAddress(addr);

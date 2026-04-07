@@ -40,9 +40,9 @@ const AdminDashboard = () => {
   const statCards = [
     { title: "Total Farmers", value: stats.farmers, icon: <UserCheck />, color: "bg-green-100 text-green-600" },
     { title: "Total Customers", value: stats.customers, icon: <Users />, color: "bg-blue-100 text-blue-600" },
-    { title: "Total Retailers", value: stats.retailers, icon: <Store />, color: "bg-purple-100 text-purple-600" },
+    { title: "Total Products", value: stats.totalProducts, icon: <ShoppingBag />, color: "bg-purple-100 text-purple-600" },
     { title: "Total Orders", value: stats.totalOrders, icon: <ShoppingBag />, color: "bg-yellow-100 text-yellow-600" },
-    { title: "Total Revenue", value: `₹${stats.totalRevenue.toLocaleString()}`, icon: <DollarSign />, color: "bg-emerald-100 text-emerald-600" },
+    { title: "Total Revenue", value: `₹${Number(stats.totalRevenue || 0).toFixed(2)}`, icon: <DollarSign />, color: "bg-emerald-100 text-emerald-600" },
     { title: "Pending Deliveries", value: stats.pendingDeliveries, icon: <Truck />, color: "bg-orange-100 text-orange-600" },
     { title: "Complaints / Tickets", value: stats.complaints, icon: <AlertTriangle />, color: "bg-red-100 text-red-600" },
     { title: "Today's Orders", value: stats.todaysOrders, icon: <Calendar />, color: "bg-indigo-100 text-indigo-600" }
@@ -91,8 +91,14 @@ const AdminDashboard = () => {
               <LineChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                <YAxis axisLine={false} tickLine={false} />
-                <Tooltip />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tickFormatter={(val) => `₹${Number(val).toFixed(0)}`}
+                />
+                <Tooltip 
+                  formatter={(value) => [`₹${Number(value).toFixed(2)}`, "Revenue"]}
+                />
                 <Line type="monotone" dataKey="revenue" stroke="#2980b9" strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} />
               </LineChart>
             </ResponsiveContainer>

@@ -7,7 +7,6 @@ import ProductsSection from '../components/ProductsSection';
 // Role Home Components
 import CustomerHome from './CustomerHome';
 import FarmerHome from './FarmerHome';
-import RetailerHome from './RetailerHome';
 
 const Home = () => {
   const { isAuthenticated, user } = useAuth();
@@ -18,8 +17,6 @@ const Home = () => {
         return <CustomerHome />;
       case 'farmer':
         return <FarmerHome />;
-      case 'retailer':
-        return <RetailerHome />;
       default:
         break;
     }

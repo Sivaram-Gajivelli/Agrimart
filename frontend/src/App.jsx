@@ -22,6 +22,7 @@ import Prices from "./app/Prices";
 import SellProduce from "./app/SellProduce";
 import MyProducts from "./app/MyProducts";
 import OrdersReceived from "./app/OrdersReceived";
+import FarmerStock from "./app/FarmerStock";
 import PricePrediction from "./app/PricePrediction";
 import ProductDetails from "./app/ProductDetails";
 import Cart from "./app/Cart";
@@ -29,6 +30,7 @@ import Checkout from "./app/Checkout";
 import CartSidebar from "./components/CartSidebar";
 import CustomerOrders from "./app/CustomerOrders";
 import ShippingPolicy from "./app/ShippingPolicy";
+import Profile from "./app/Profile";
 
 /**
  * Admin component imports for the administration dashboard and related management views.
@@ -41,8 +43,11 @@ import AdminProducts from "./admin/AdminProducts";
 import AdminOrders from "./admin/AdminOrders";
 import AdminHubs from "./admin/AdminHubs";
 import AdminDeliveries from "./admin/AdminDeliveries";
-import AdminAssignedOrders from "./admin/AdminAssignedOrders";
+
 import AdminSettings from "./admin/AdminSettings";
+import AdminPayments from "./admin/AdminPayments";
+import AdminComplaints from "./admin/AdminComplaints";
+import AdminReports from "./admin/AdminReports";
 
 /**
  * Delivery Agent portal imports
@@ -81,12 +86,15 @@ function App() {
               <Route path="/sell-produce" element={<SellProduce />} />
               <Route path="/my-products" element={<MyProducts />} />
               <Route path="/orders-received" element={<OrdersReceived />} />
+              <Route path="/revenue" element={<OrdersReceived />} />
+              <Route path="/farmer-stock" element={<FarmerStock />} />
               <Route path="/price-prediction" element={<PricePrediction />} />
               <Route path="/product/:id" element={<ProductDetails />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/orders" element={<CustomerOrders />} />
               <Route path="/shipping-policy" element={<ShippingPolicy />} />
+              <Route path="/profile" element={<Profile />} />
             </Route>
 
 
@@ -106,7 +114,10 @@ function App() {
                <Route path="orders" element={<AdminOrders />} />
               <Route path="hubs" element={<AdminHubs />} />
               <Route path="deliveries" element={<AdminDeliveries />} />
-              <Route path="assigned-orders" element={<AdminAssignedOrders />} />
+              <Route path="payments" element={<AdminPayments />} />
+              <Route path="complaints" element={<AdminComplaints />} />
+              <Route path="reports" element={<AdminReports />} />
+
               <Route path="settings" element={<AdminSettings />} />
             </Route>
 

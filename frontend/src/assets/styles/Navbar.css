@@ -63,11 +63,13 @@
   transition: var(--transition);
 }
 
-.nav-links a:hover {
+.nav-links a:hover,
+.nav-links a.active {
   color: var(--primary);
 }
 
-.nav-links a:hover::after {
+.nav-links a:hover::after,
+.nav-links a.active::after {
   width: 100%;
 }
 
@@ -303,25 +305,35 @@ html[lang="as"] .phonetic-text .native-label { display: none !important; }
 /* ---------- PROFILE ICON ---------- */
 
 .nav-profile-btn {
-  background: var(--bg-main);
-  color: var(--primary);
+  background: white;
+  color: var(--text-dark);
   border: 1px solid var(--border-color);
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   transition: var(--transition);
+  font-weight: 700;
+  font-family: inherit;
+  font-size: 0.9rem;
 }
 
 .nav-profile-btn:hover {
-  background: var(--primary-light);
-  color: white;
-  border-color: var(--primary-light);
-  transform: scale(1.05) translateY(-2px);
-  box-shadow: var(--shadow-md);
+  background: #f0fdf4;
+  color: var(--primary);
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(22, 101, 52, 0.1);
+}
+
+.profile-name-text {
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Mobile drawer alignment */

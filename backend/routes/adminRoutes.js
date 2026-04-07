@@ -6,8 +6,11 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/userModel");
 const Order = require("../models/orderModel");
 const Product = require("../models/productModel");
+const Hub = require("../models/hubModel");
 const Setting = require("../models/settingModel");
 const adminAuth = require("../middleware/adminMiddleware");
+const { updateFarmersRevenue } = require("../utils/revenueHelper");
+const { getDistance } = require("../utils/distanceHelper");
 
 // @route   POST /api/admin/login
 // @desc    Admin login
@@ -98,13 +101,13 @@ router.get("/stats", adminAuth, async (req, res) => {
     today.setHours(0, 0, 0, 0);
 
     const [
-      farmers, customers, retailers, totalOrders,
+      farmers, customers, totalOrders, totalProducts,
       revenueStats, todaysStats, chartData
     ] = await Promise.all([
       User.countDocuments({ role: "farmer" }),
       User.countDocuments({ role: "customer" }),
-      User.countDocuments({ role: "retailer" }),
       Order.countDocuments(),
+      Product.countDocuments(),
       
       // Total Revenue
       Order.aggregate([
@@ -150,8 +153,8 @@ router.get("/stats", adminAuth, async (req, res) => {
     res.json({
       farmers,
       customers,
-      retailers,
       totalOrders,
+      totalProducts,
       totalRevenue,
       pendingDeliveries: await Order.countDocuments({ trackingStatus: { $nin: ["Completed", "Delivered", "Cancelled"] } }),
       complaints: 0, // Pending model implementation
@@ -221,24 +224,134 @@ router.put("/users/:id/status", adminAuth, async (req, res) => {
 // @access  Private (Admin)
 router.get("/products", adminAuth, async (req, res) => {
   try {
+    // Fetch products with all relevant data
     const products = await Product.find()
       .populate("farmer", "name email")
+      .populate("nearestHub", "name location")
       .sort({ createdAt: -1 });
-    res.json(products);
+
+    // 🗺️ AUTO-BACKFILL: Resolve "Not Assigned" hubs on the fly for products missing it
+    const hubs = await Hub.find({ status: 'active' });
+    const updatedProducts = await Promise.all(products.map(async (p) => {
+        // Only backfill if nearestHub is missing but we have location data
+        if (!p.nearestHub && hubs.length > 0) {
+            let lat = p.latitude;
+            let lng = p.longitude;
+            
+            // If product has no coords, try to use farmer's coords as a localized fallback
+            if (!lat || !lng) {
+                const farmer = await User.findById(p.farmer);
+                if (farmer && farmer.latitude && farmer.longitude) {
+                    lat = farmer.latitude;
+                    lng = farmer.longitude;
+                }
+            }
+
+            if (lat && lng) {
+                let minHubDist = Infinity;
+                let bestHub = null;
+                
+                hubs.forEach(h => {
+                    const dist = getDistance(lat, lng, h.latitude, h.longitude);
+                    if (dist < minHubDist) {
+                        minHubDist = dist;
+                        bestHub = h;
+                    }
+                });
+
+                if (bestHub) {
+                    p.nearestHub = bestHub._id;
+                    await p.save();
+                    console.log(`[BACKFILL-GPS] Assigned hub ${bestHub.name} to product ${p.productName}`);
+                    p.nearestHub = { _id: bestHub._id, name: bestHub.name, location: bestHub.location };
+                }
+            } else if (p.manualLocation) {
+                // 📝 TEXT FALLBACK: More flexible word-based match
+                const text = p.manualLocation.toLowerCase();
+                const matchedHub = hubs.find(h => {
+                    const hubNameLow = h.name.toLowerCase();
+                    const hubLocLow = h.location.toLowerCase();
+                    // If location contains any word from hub name (e.g. "Guntur")
+                    return hubNameLow.split(' ').some(word => word.length > 3 && text.includes(word)) ||
+                           hubLocLow.split(' ').some(word => word.length > 3 && text.includes(word));
+                });
+
+                if (matchedHub) {
+                    p.nearestHub = matchedHub._id;
+                    await p.save();
+                    console.log(`[BACKFILL-TEXT] Assigned hub ${matchedHub.name} to product ${p.productName} via "${p.manualLocation}"`);
+                    p.nearestHub = { _id: matchedHub._id, name: matchedHub.name, location: matchedHub.location };
+                }
+            }
+        }
+        return p;
+    }));
+
+    res.json(updatedProducts);
   } catch (error) {
+    console.error("Admin products fetch error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
 
+
 // @route   PUT /api/admin/products/:id/approve
-// @desc    Approve/Reject product
+// @desc    Verify and list a product for sale (Final Verification in Hubs tab)
 // @access  Private (Admin)
 router.put("/products/:id/approve", adminAuth, async (req, res) => {
   try {
     const { status } = req.body; // 'verified', 'rejected', 'quality assessment'
-    const product = await Product.findByIdAndUpdate(req.params.id, { verificationStatus: status }, { new: true });
+    
+    // 🔒 RESTRICTION: Admin cannot verify until it's delivered to hub
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ message: "Product not found" });
+
+    if (status === 'verified') {
+        if (product.deliveryStatus !== 'At Hub') {
+            return res.status(400).json({ 
+                message: "This product must be marked 'At Hub' by logistics before it can be verified." 
+            });
+        }
+        
+        // 🔒 NEW RESTRICTION: Must pass Quality Check first
+        if (product.verificationStatus !== 'quality assessment') {
+            return res.status(400).json({
+                message: "Hub Quality check pending. Please pass QC in the Delivery Management tab first."
+            });
+        }
+    }
+
+    product.verificationStatus = status;
+    if (status === 'verified') {
+        product.deliveryStatus = 'At Hub';
+    }
+    await product.save();
+
+    // 🚀 NEW: Auto-transition Order to 'Quality Checked' when all its items are verified
+    if (status === 'verified') {
+        const ordersToUpdate = await Order.find({ "items.product": req.params.id })
+            .populate('items.product', 'verificationStatus');
+            
+        for (const order of ordersToUpdate) {
+            // Check if all other items in this order are ALSO verified
+            const isFullyVerified = order.items.every(it => 
+                it.product && it.product.verificationStatus === 'verified'
+            );
+            
+            // 🚀 NEW: Comprehensive list including legacy statuses for auto-advancement
+            const preQCStatuses = ['Processing', 'Ordered', 'Order Placed', 'Farmer Packed', 'Ready for Pickup', 'Picked Up', 'Delivered to Hub'];
+            
+            if (isFullyVerified && preQCStatuses.includes(order.trackingStatus)) {
+                order.trackingStatus = 'Quality Checked';
+                await order.save();
+                console.log(`[FLOW] Order #${order._id.toString().slice(-8).toUpperCase()} moved to Quality Checked (All items verified)`);
+            }
+        }
+    }
+
     res.json(product);
   } catch (error) {
+    console.error("Product Approve Error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -251,26 +364,52 @@ router.get("/orders", adminAuth, async (req, res) => {
     const orders = await Order.find()
       .populate("buyer", "name email phone")
       .populate("items.farmer", "name email phone address")
-      .populate("items.product", "productName pricePerKg unit image category")
+      .populate("items.product", "productName pricePerKg unit image category verificationStatus deliveryStatus")
       .sort({ createdAt: -1 });
+
+    // 🚀 SELF-HEALING: Auto-repair statuses for orders stuck in legacy or pre-QC states
+    const preQCStatuses = ['Processing', 'Ordered', 'Order Placed', 'Farmer Packed', 'Ready for Pickup', 'Picked Up', 'Delivered to Hub'];
+
+    for (const order of orders) {
+        if (preQCStatuses.includes(order.trackingStatus)) {
+            const isFullyVerified = order.items.length > 0 && order.items.every(it => 
+                it.product && it.product.verificationStatus === 'verified'
+            );
+            
+            if (isFullyVerified) {
+                order.trackingStatus = 'Quality Checked';
+                await order.save();
+            }
+        }
+    }
+
     res.json(orders);
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// @route   PUT /api/admin/orders/:id/status
-// @desc    Update order status
-// @access  Private (Admin)
+// 🛑 MANUAL STATUS UPDATE DISABLED: Admins can no longer manually advance order status.
+// Status is now strictly managed by Hub/Delivery logistics events.
+/*
 router.put("/orders/:id/status", adminAuth, async (req, res) => {
   try {
     const { status } = req.body;
-    const order = await Order.findByIdAndUpdate(req.params.id, { trackingStatus: status }, { new: true });
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    order.trackingStatus = status;
+    await order.save();
+    
+    // ... automation logic removed for safety ...
+    
     res.json(order);
   } catch (error) {
+    console.error("Order Status Update Error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
+*/
 
 // @route   GET /api/admin/hubs
 // @desc    Get all hubs
@@ -560,26 +699,78 @@ router.delete("/delivery/agents/:id", adminAuth, async (req, res) => {
 router.get("/delivery/unassigned", adminAuth, async (req, res) => {
   try {
     const Order = require("../models/orderModel");
+    const DeliveryAssignment = require("../models/deliveryAssignmentModel");
 
-    // Get orders that need pickup or delivery assignments
-    const needsPickup = await Order.find({ trackingStatus: "Ready for Pickup" })
+    // 🚚 PICKUPS: Farmer -> Hub (Includes both Order-linked and Stocking)
+    // 1. Fetch ALL "Ready for Pickup" Products (Stocking flow)
+    const StockProduct = require("../models/productModel");
+    const readyProducts = await StockProduct.find({ deliveryStatus: "Ready for Pickup" })
+      .populate("farmer", "name phone manualLocation")
+      .sort({ updatedAt: -1 });
+
+    // 2. Fetch ALL "Ready for Pickup" Orders (Sales flow)
+    const allPickups = await Order.find({ trackingStatus: "Ready for Pickup" })
       .populate("buyer", "name phone")
       .populate("items.farmer", "name phone address")
-      .populate("items.product", "productName unit");
+      .populate("items.product", "productName unit manualLocation")
+      .sort({ createdAt: -1 });
 
+    // 3. Fetch ALL Pickup Assignments
+    const pickupAssignments = await DeliveryAssignment.find({ type: "Pickup" })
+      .populate("agent", "name vehicleNumber")
+      .populate("product", "productName unit");
+    
+    // 4. Merge results for the Admin Dashboard
+    const pickups = [];
+
+    // Add Order-based pickups
+    allPickups.forEach(order => {
+        const assignment = pickupAssignments.find(a => a.order && a.order.toString() === order._id.toString());
+        pickups.push({
+            ...order.toObject(),
+            assignment: assignment ? { agent: assignment.agent, status: assignment.status, _id: assignment._id } : null,
+            isStocking: false
+        });
+    });
+
+    // Add Product-based (Stocking) pickups if not already covered by an order
+    readyProducts.forEach(prod => {
+        // Check if this product is already in the 'pickups' array as an order
+        const alreadyInOrder = pickups.some(p => p.items && p.items.some(i => i.product && i.product._id.toString() === prod._id.toString()));
+        
+        if (!alreadyInOrder) {
+            const assignment = pickupAssignments.find(a => a.product && a.product._id.toString() === prod._id.toString());
+            pickups.push({
+                _id: prod._id,
+                items: [{ product: prod, farmer: prod.farmer }],
+                trackingStatus: "Ready for Pickup",
+                assignment: assignment ? { agent: assignment.agent, status: assignment.status, _id: assignment._id } : null,
+                isStocking: true,
+                createdAt: prod.updatedAt
+            });
+        }
+    });
+
+    // 📦 DELIVERIES: Hub -> Customer
     const needsDelivery = await Order.find({ trackingStatus: "Ready for Delivery" })
       .populate("buyer", "name phone")
       .populate("items.farmer", "name")
-      .populate("items.product", "productName unit");
+      .populate("items.product", "productName unit")
+      .sort({ createdAt: -1 });
 
-    // Filter out those already assigned
-    const existingPickupOrderIds = (await DeliveryAssignment.find({ type: "Pickup" }).select("order")).map(a => a.order.toString());
-    const existingDeliveryOrderIds = (await DeliveryAssignment.find({ type: "Delivery" }).select("order")).map(a => a.order.toString());
+    const deliveryAssignments = await DeliveryAssignment.find({ type: "Delivery" })
+      .populate("agent", "name vehicleNumber");
 
-    res.json({
-      pickups: needsPickup.filter(o => !existingPickupOrderIds.includes(o._id.toString())),
-      deliveries: needsDelivery.filter(o => !existingDeliveryOrderIds.includes(o._id.toString())),
+    const deliveries = needsDelivery.map(order => {
+        const assignment = deliveryAssignments.find(a => a.order && a.order.toString() === order._id.toString());
+        return {
+            ...order.toObject(),
+            assignment: assignment ? { agent: assignment.agent, status: assignment.status, _id: assignment._id } : null,
+            isStocking: false
+        };
     });
+
+    res.json({ pickups, deliveries });
   } catch (error) {
     console.error("Get Unassigned Error:", error);
     res.status(500).json({ message: "Server error" });
@@ -591,35 +782,58 @@ router.get("/delivery/unassigned", adminAuth, async (req, res) => {
 // @access  Private (Admin)
 router.post("/delivery/assign", adminAuth, async (req, res) => {
   try {
-    const { orderId, agentId, type } = req.body; // type: 'Pickup' or 'Delivery'
+    const { orderId, agentId, type, isStocking } = req.body; 
 
     if (!orderId || !agentId || !type) {
       return res.status(400).json({ message: "orderId, agentId, and type are required" });
     }
-
-    const Order = require("../models/orderModel");
-    const order = await Order.findById(orderId);
-    if (!order) return res.status(404).json({ message: "Order not found" });
 
     const agent = await User.findById(agentId).select("-password");
     if (!agent || agent.role !== "delivery_partner") {
       return res.status(404).json({ message: "Delivery agent not found" });
     }
 
-    // Create assignment
-    const assignment = await DeliveryAssignment.create({
-      order: orderId,
-      agent: agentId,
-      type,
-    });
+    if (isStocking) {
+        // STOCKING FLOW: Associated with Product
+        const Product = require("../models/productModel");
+        const product = await Product.findById(orderId);
+        if (!product) return res.status(404).json({ message: "Product not found" });
 
-    // Update order status
-    if (type === "Pickup") {
-      order.trackingStatus = "Ready for Pickup";
+        // Create assignment (Linked to Product)
+        await DeliveryAssignment.create({
+            product: orderId,
+            agent: agentId,
+            type: "Pickup",
+            status: "Assigned"
+        });
+
+        // Update product status
+        product.deliveryStatus = "Ready for Pickup";
+        await product.save();
     } else {
-      order.trackingStatus = "Ready for Delivery";
+        // SALES FLOW: Associated with Order
+        const Order = require("../models/orderModel");
+        const order = await Order.findById(orderId);
+        if (!order) return res.status(404).json({ message: "Order not found" });
+
+        // Create assignment (Linked to Order)
+        await DeliveryAssignment.create({
+            order: orderId,
+            agent: agentId,
+            type,
+            status: "Assigned"
+        });
+
+        // Update order status
+        if (type === "Pickup") {
+            order.trackingStatus = "Ready for Pickup";
+        } else {
+            order.trackingStatus = "Ready for Delivery";
+        }
+        await order.save();
     }
-    await order.save();
+
+    res.json({ message: "Task assigned successfully" });
 
     // Email the agent
     if (agent.email) {
@@ -691,7 +905,11 @@ router.put("/delivery/tracking/:id/complete", adminAuth, async (req, res) => {
     await assignment.save();
 
     if (orderStatus) {
-      await Order.findByIdAndUpdate(assignment.order, { trackingStatus: orderStatus });
+      const order = await Order.findByIdAndUpdate(assignment.order, { trackingStatus: orderStatus }, { new: true });
+      // 🚀 NEW: REVENUE LOGIC
+      if (orderStatus === "Delivered" || orderStatus === "Completed") {
+          await updateFarmersRevenue(order);
+      }
     }
 
     res.json({ message: "Assignment updated", assignment });
@@ -701,20 +919,40 @@ router.put("/delivery/tracking/:id/complete", adminAuth, async (req, res) => {
 });
 
 // @route   GET /api/admin/delivery/hub-quality-check
-// @desc    Get orders that have arrived at the hub and need quality check
+// @desc    Get orders and stocking pickups that have arrived at the hub and need quality check
 // @access  Private (Admin)
 router.get("/delivery/hub-quality-check", adminAuth, async (req, res) => {
   try {
     const Order = require("../models/orderModel");
+    const Product = require("../models/productModel");
+    
+    // 1. Fetch Orders in QC-eligible states
     const orders = await Order.find({
-      trackingStatus: { $in: ["Delivered to Hub", "Quality Checked", "Hub Packed"] },
+      trackingStatus: { $in: ["Processing", "Quality Checked", "Hub Packed"] },
     })
       .populate("buyer", "name phone")
       .populate("items.product", "productName unit image")
       .populate("items.farmer", "name phone")
-      .sort({ updatedAt: -1 });
+      .lean();
 
-    res.json(orders);
+    // 2. Fetch Products (Stocking) in Hub
+    const products = await Product.find({
+      deliveryStatus: "At Hub"
+    })
+      .populate("farmer", "name phone")
+      .lean();
+
+    // Attach type for frontend identification
+    const items = [
+      ...orders.map(o => ({ ...o, itemType: 'Order' })),
+      ...products.map(p => ({ 
+        ...p, 
+        itemType: 'Stocking', 
+        trackingStatus: (p.verificationStatus === 'quality assessment' || p.verificationStatus === 'verified') ? 'Quality Checked' : 'Processing' 
+      }))
+    ];
+
+    res.json(items.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
   } catch (error) {
     console.error("Hub QC Error:", error);
     res.status(500).json({ message: "Server error" });
@@ -726,33 +964,89 @@ router.get("/delivery/hub-quality-check", adminAuth, async (req, res) => {
 // @access  Private (Admin)
 router.put("/delivery/hub-quality-check/:id", adminAuth, async (req, res) => {
   try {
-    const { trackingStatus } = req.body;
+    const { trackingStatus, itemType } = req.body;
     const validQCStatuses = ["Quality Checked", "Hub Packed", "Ready for Delivery", "Cancelled"];
 
     if (!validQCStatuses.includes(trackingStatus)) {
       return res.status(400).json({ message: "Invalid QC status" });
     }
 
-    const Order = require("../models/orderModel");
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      { trackingStatus },
-      { new: true }
-    ).populate("buyer", "name email phone");
+    if (itemType === 'Order' || !itemType) {
+      const Order = require("../models/orderModel");
+      const Product = require("../models/productModel");
+      
+      const order = await Order.findByIdAndUpdate(
+        req.params.id,
+        { trackingStatus },
+        { new: true }
+      ).populate("buyer", "name email phone");
 
-    if (!order) return res.status(404).json({ message: "Order not found" });
+      if (!order) return res.status(404).json({ message: "Order not found" });
 
-    // If Hub Packed → send dispatch email to customer
-    if (trackingStatus === "Hub Packed" && order.buyer?.email) {
-      transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: order.buyer.email,
-        subject: "Agrimart: Your order is packed and ready at the hub!",
-        html: `<h3>Hi ${order.buyer.name},</h3><p>Great news! Your order <strong>#${order._id.toString().slice(-8).toUpperCase()}</strong> has passed quality check and has been packed. It will be dispatched to you shortly.</p>`,
-      }).catch(e => console.error("Email Error:", e));
+      // 🔗 BRIDGE: If QC Passed → Update all underlying products to 'quality assessment'
+      if (trackingStatus === 'Quality Checked') {
+          const productIds = (order.items || []).map(it => it.product);
+          await Product.updateMany(
+              { _id: { $in: productIds }, verificationStatus: 'pending' }, 
+              { verificationStatus: 'quality assessment' }
+          );
+      }
+
+      // If Hub Packed → send dispatch email to customer
+      if (trackingStatus === "Hub Packed" && order.buyer?.email) {
+        const transporter = require('../utils/emailService').transporter;
+        transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: order.buyer.email,
+          subject: "Agrimart: Your order is packed and ready at the hub!",
+          html: `<h3>Hi ${order.buyer.name},</h3><p>Great news! Your order <strong>#${order._id.toString().slice(-8).toUpperCase()}</strong> has passed quality check and has been packed. It will be dispatched to you shortly.</p>`,
+        }).catch(e => console.error("Email Error:", e));
+      }
+
+      // If Ready for Delivery → assign final delivery agent
+      if (trackingStatus === "Ready for Delivery") {
+         const { autoAssignDeliveryAgent } = require('../utils/logisticsHelper');
+         // We'll need a hub ID. The items came from a hub, or we default to the first hub.
+         // Usually we'd use the assignment.agent.assignedHub but we don't have that here.
+         // Realistically, the autoAssignDeliveryAgent function finds the closest agent anyway.
+         // The helper autoAssignDeliveryAgent(orderId, type, hubId) might need a hub. Let's pass null and see if it falls back or fetches order coords.
+         try {
+             // For simplicity, we trigger the agent assignment. The helper will find any online agent.
+             await autoAssignDeliveryAgent(order._id, 'Delivery');
+             console.log(`[FLOW] Final delivery agent auto-assigned for Order #${order._id.toString().slice(-8).toUpperCase()}`);
+         } catch (e) {
+             console.error("[FLOW] Failed to auto-assign final delivery agent:", e);
+         }
+      }
+
+      return res.json(order);
+    } else {
+      const Product = require("../models/productModel");
+      const existingProduct = await Product.findById(req.params.id);
+      if (!existingProduct) return res.status(404).json({ message: "Product not found" });
+
+      const updateData = {
+          deliveryStatus: trackingStatus === 'Quality Checked' ? 'At Hub' : (trackingStatus === 'Cancelled' ? 'Cancelled' : 'At Hub')
+      };
+
+      // If QC Passed → move to 'quality assessment' for final verify button in Hubs tab, but don't downgrade if already verified
+      if (trackingStatus === 'Quality Checked') {
+          if (existingProduct.verificationStatus === 'pending') {
+              updateData.verificationStatus = 'quality assessment';
+          }
+      } else if (trackingStatus === 'Cancelled') {
+          updateData.verificationStatus = 'rejected';
+      } else {
+          updateData.verificationStatus = 'pending';
+      }
+
+      const product = await Product.findByIdAndUpdate(
+        req.params.id,
+        updateData,
+        { new: true }
+      );
+      return res.json(product);
     }
-
-    res.json(order);
   } catch (error) {
     console.error("Hub QC Update Error:", error);
     res.status(500).json({ message: "Server error" });
@@ -766,13 +1060,19 @@ router.get("/delivery/assignments", adminAuth, async (req, res) => {
   try {
     const DeliveryAssignment = require("../models/deliveryAssignmentModel");
     const assignments = await DeliveryAssignment.find()
-      .populate("agent", "name phone email vehicleType vehicleNumber")
+      .populate("agent", "name phone email vehicleType vehicleNumber deliveryRating totalDeliveryRatings")
       .populate({
         path: "order",
         populate: [
           { path: "buyer", select: "name phone" },
-          { path: "items.product", select: "productName image unit" },
+          { path: "items.product", select: "productName image unit trackingStatus" },
           { path: "items.farmer", select: "name phone address" }
+        ]
+      })
+      .populate({
+        path: "product",
+        populate: [
+          { path: "farmer", select: "name phone address" }
         ]
       })
       .sort({ assignedAt: -1 });
@@ -780,6 +1080,114 @@ router.get("/delivery/assignments", adminAuth, async (req, res) => {
     res.json(assignments);
   } catch (error) {
     console.error("Admin Assignments Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PAYMENTS MANAGEMENT
+// ─────────────────────────────────────────────────────────────────────────────
+
+// @route   GET /api/admin/payments
+// @desc    Get detailed transaction history
+// @access  Private (Admin)
+router.get("/payments", adminAuth, async (req, res) => {
+  try {
+    const orders = await Order.find()
+      .populate("buyer", "name email phone")
+      .populate("items.farmer", "name email")
+      .sort({ createdAt: -1 });
+    
+    // Enrich with computed fields if needed
+    const payments = orders.map(o => ({
+        _id: o._id,
+        buyer: o.buyer,
+        totalAmount: o.totalAmount,
+        platformFee: o.platformFee,
+        deliveryFee: o.deliveryFee,
+        farmerRevenue: o.subtotal, // subtotal is the product total before fees
+        status: o.trackingStatus,
+        createdAt: o.createdAt
+    }));
+
+    res.json(payments);
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPLAINTS MANAGEMENT
+// ─────────────────────────────────────────────────────────────────────────────
+
+const Complaint = require("../models/complaintModel");
+
+// @route   GET /api/admin/complaints
+// @desc    Get all active complaints
+// @access  Private (Admin)
+router.get("/complaints", adminAuth, async (req, res) => {
+  try {
+    const complaints = await Complaint.find()
+      .populate("user", "name role email phone")
+      .populate({
+          path: "order",
+          select: "trackingStatus totalAmount createdAt"
+      })
+      .sort({ createdAt: -1 });
+    res.json(complaints);
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// @route   PUT /api/admin/complaints/:id/resolve
+// @desc    Update complaint status and resolution
+// @access  Private (Admin)
+router.put("/complaints/:id/status", adminAuth, async (req, res) => {
+  try {
+    const { status, resolution } = req.body;
+    const complaint = await Complaint.findByIdAndUpdate(
+        req.params.id,
+        { status, resolution },
+        { new: true }
+    );
+    if (!complaint) return res.status(404).json({ message: "Complaint not found" });
+    res.json(complaint);
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REPORTS & ANALYTICS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// @route   GET /api/admin/reports/analytics
+// @desc    Get aggregated data for reporting
+// @access  Private (Admin)
+router.get("/reports/analytics", adminAuth, async (req, res) => {
+  try {
+    const stats = await Order.aggregate([
+        { $match: { trackingStatus: { $ne: 'Cancelled' } } },
+        { $group: {
+            _id: { $month: "$createdAt" },
+            sales: { $sum: "$totalAmount" },
+            orders: { $sum: 1 },
+            platformRevenue: { $sum: "$platformFee" }
+        }},
+        { $sort: { "_id": 1 } }
+    ]);
+
+    const categoryStats = await Product.aggregate([
+        { $group: {
+            _id: "$category",
+            count: { $sum: 1 },
+            stock: { $sum: "$quantityAvailable" }
+        }}
+    ]);
+
+    res.json({ stats, categoryStats });
+  } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
 });

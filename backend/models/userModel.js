@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["customer", "farmer", "retailer", "admin", "delivery_partner"],
+      enum: ["customer", "farmer", "admin", "delivery_partner"],
       required: true
     },
     status: {
@@ -71,6 +71,19 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Hub',
       required: false
+    },
+    revenue: {
+      type: Number,
+      default: 0
+    },
+    // 🚀 NEW: Delivery Agent Reputation
+    deliveryRating: {
+      type: Number,
+      default: 0
+    },
+    totalDeliveryRatings: {
+      type: Number,
+      default: 0
     }
   },
   { timestamps: true }

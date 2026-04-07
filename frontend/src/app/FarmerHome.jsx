@@ -67,7 +67,7 @@ const FarmerHome = () => {
                     <div style={{ background: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', textAlign: 'center' }}>
                         <h3 style={{ color: 'var(--text-dark)', marginBottom: '10px', fontSize: '1.2rem' }}>Total Revenue</h3>
                         <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary)' }}>
-                            {loading ? '...' : `₹${stats.totalRevenue.toLocaleString()}`}
+                            {loading ? '...' : `₹${Number(stats.totalRevenue || 0).toFixed(2)}`}
                         </p>
                     </div>
                     <div style={{ background: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', textAlign: 'center' }}>
@@ -84,6 +84,7 @@ const FarmerHome = () => {
                     <button className="btn btn-primary" onClick={() => navigate('/add-product')} style={{ padding: '15px 30px', fontSize: '1.1rem' }}>Add New Product</button>
                     <button className="btn btn-secondary" onClick={() => navigate('/orders-received')} style={{ padding: '15px 30px', fontSize: '1.1rem' }}>View Orders</button>
                     <button className="btn btn-secondary" onClick={() => navigate('/my-products')} style={{ padding: '15px 30px', fontSize: '1.1rem' }}>My Products</button>
+                    <button className="btn btn-secondary" onClick={() => navigate('/farmer-stock')} style={{ padding: '15px 30px', fontSize: '1.1rem' }}>Stock Management</button>
                 </div>
 
                 {/* Market Prices Overview */}

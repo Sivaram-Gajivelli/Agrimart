@@ -17,14 +17,7 @@ export default function RoleSelect() {
       icon: "🧑‍🌾",
       title: "Farmer",
       tagline: "Sell smarter. Earn better. Grow digitally.",
-      desc: "List your crops, set your prices, and connect directly with buyers and retailers."
-    },
-    {
-      role: "retailer",
-      icon: "🛒",
-      title: "Retailer",
-      tagline: "Stock faster. Sell wider. Scale your business.",
-      desc: "Source directly from farmers, manage bulk orders, and expand your supply chain."
+      desc: "List your crops, set your prices, and connect directly with verified buyers."
     }
   ];
 

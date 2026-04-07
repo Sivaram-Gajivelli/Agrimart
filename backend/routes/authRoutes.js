@@ -33,7 +33,7 @@ const otpLimiter = rateLimit({
 });
 
 // Allowed roles
-const ALLOWED_ROLES = ["customer", "farmer", "retailer"];
+const ALLOWED_ROLES = ["customer", "farmer"];
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -55,7 +55,7 @@ const registerValidation = [
   body("name").trim().notEmpty().withMessage("Name is required").isLength({ min: 3 }).withMessage("Name must be at least 3 characters long"),
   body("email").optional({ checkFalsy: true }).isEmail().withMessage("Must be a valid email").normalizeEmail(),
   body("phone").optional({ checkFalsy: true }).isMobilePhone().withMessage("Must be a valid phone number"),
-  body("role").isIn(["customer", "farmer", "retailer"]).withMessage("Invalid user role"),
+  body("role").isIn(["customer", "farmer"]).withMessage("Invalid user role"),
   // Strong password logic
   body("password")
     .isLength({ min: 8 }).withMessage("Password must be at least 8 characters long")
@@ -419,7 +419,7 @@ router.get("/check-verification", async (req, res) => {
 const loginValidation = [
   body("email").trim().notEmpty().withMessage("Email/Phone is required"),
   body("password").notEmpty().withMessage("Password is required"),
-  body("role").isIn(["customer", "farmer", "retailer"]).withMessage("Invalid user role")
+  body("role").isIn(["customer", "farmer"]).withMessage("Invalid user role")
 ];
 
 router.post("/login", authLimiter, loginValidation, async (req, res) => {

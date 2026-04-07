@@ -7,7 +7,6 @@ import { toast } from "react-toastify";
 // Background images
 import customerBg from "../assets/images/customer_login.png";
 import farmerBg from "../assets/images/slide1.jpg";
-import retailerBg from "../assets/images/retailer_login.png";
 
 // SVG Icons extracted outside the component to prevent unstable nested component errors
 const EyeIcon = () => (
@@ -35,21 +34,19 @@ export default function Login() {
   // Role taglines
   const roleTaglines = {
     customer: "Fresh from farms, delivered to your doorstep.",
-    farmer: "Sell smarter. Earn better. Grow digitally.",
-    retailer: "Stock faster. Sell wider. Scale your business."
+    farmer: "Sell smarter. Earn better. Grow digitally."
   };
 
   // Role backgrounds
   const roleBackgrounds = {
     customer: customerBg,
-    farmer: farmerBg,
-    retailer: retailerBg
+    farmer: farmerBg
   };
 
   const bgImage = roleBackgrounds[safeRole] || customerBg;
   const tagline =
     roleTaglines[safeRole] ||
-    "Connecting farmers, retailers, and consumers in one digital marketplace.";
+    "Connecting farmers and consumers in one digital marketplace.";
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });

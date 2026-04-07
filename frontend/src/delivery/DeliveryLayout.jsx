@@ -40,7 +40,7 @@ const DeliveryLayout = () => {
   ];
 
   return (
-    <div className="delivery-layout">
+    <div className="delivery-layout notranslate skiplocalize" translate="no">
       {/* Sidebar */}
       <aside className={`delivery-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="delivery-sidebar-header">

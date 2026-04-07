@@ -1,5 +1,5 @@
 import React from "react";
-import HeroSection from "../components/Herosection";
+import HeroSection from "../components/HeroSection";
 import "../assets/styles/About.css";
 import aboutBanner from "../assets/images/slide1.jpg";
 
@@ -20,8 +20,8 @@ const About = () => {
         <h2>Who We Are</h2>
         <p>
           AGRIMART is a farmer-centric digital marketplace designed to eliminate
-          middlemen and enable direct, transparent trade between farmers,
-          consumers, and retailers. Our platform ensures fair pricing, better
+          middlemen and enable direct, transparent trade between farmers and
+          consumers. Our platform ensures fair pricing, better
           farmer income, and access to fresh agricultural produce.
         </p>
       </section>
@@ -88,8 +88,8 @@ const About = () => {
           </div>
 
           <div className="role-card">
-            <h3>🏪 Retailers</h3>
-            <p>Procure agricultural goods in bulk directly from producers.</p>
+            <h3>🚚 Delivery Partners</h3>
+            <p>Earn by facilitating the fresh produce movement from farm to hub and customer.</p>
           </div>
         </div>
       </section>

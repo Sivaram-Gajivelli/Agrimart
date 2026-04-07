@@ -4,7 +4,12 @@ const deliveryAssignmentSchema = new mongoose.Schema({
     order: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Order',
-        required: true
+        required: false // Optional for stocking pickups
+    },
+    product: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product',
+        required: false // Used for stocking/harvest pickups without an order
     },
     agent: {
         type: mongoose.Schema.Types.ObjectId,
@@ -27,6 +32,22 @@ const deliveryAssignmentSchema = new mongoose.Schema({
     },
     completedAt: {
         type: Date
+    },
+    // 🚀 NEW: Rating System
+    rating: {
+        type: Number,
+        min: 1,
+        max: 5,
+        required: false
+    },
+    feedback: {
+        type: String,
+        required: false
+    },
+    ratedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: false
     }
 }, {
     timestamps: true

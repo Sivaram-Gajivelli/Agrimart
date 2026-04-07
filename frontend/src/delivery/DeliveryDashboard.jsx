@@ -12,20 +12,63 @@ const DeliveryDashboard = () => {
     deliveredToday: 0
   });
   const [loading, setLoading] = useState(true);
+  const [isOnline, setIsOnline] = useState(false);
+  const [assignedHub, setAssignedHub] = useState(null);
+  const [toggling, setToggling] = useState(false);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
       try {
-        const res = await axios.get('/api/delivery/stats', { withCredentials: true });
-        setStats(res.data);
+        const [statsRes, userRes] = await Promise.all([
+            axios.get('/api/delivery/stats', { withCredentials: true }),
+            axios.get('/api/delivery/check-auth', { withCredentials: true })
+        ]);
+        setStats(statsRes.data);
+        setIsOnline(userRes.data?.user?.isOnline || false);
+        setAssignedHub(userRes.data?.user?.assignedHub || null);
       } catch (err) {
-        toast.error('Failed to fetch dashboard stats');
+        toast.error('Failed to fetch dashboard data');
       } finally {
         setLoading(false);
       }
     };
-    fetchStats();
+    fetchData();
   }, []);
+
+  const handleToggleOnline = async () => {
+    setToggling(true);
+    const newStatus = !isOnline;
+
+    try {
+        let location = { latitude: null, longitude: null };
+
+        if (newStatus) {
+            // Get current location when going online
+            const pos = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
+            }).catch(() => null);
+
+            if (pos) {
+                location = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+            } else {
+                toast.warning("Could not get precise location. Hub assignment might be inaccurate.");
+            }
+        }
+
+        const res = await axios.put('/api/user/toggle-online', { 
+            isOnline: newStatus,
+            ...location
+        }, { withCredentials: true });
+
+        setIsOnline(res.data.isOnline);
+        setAssignedHub(res.data.assignedHub);
+        toast.success(newStatus ? `You are now ONLINE at ${res.data.assignedHub?.name || 'Nearest Hub'}` : "You are now OFFLINE");
+    } catch (err) {
+        toast.error("Failed to update online status");
+    } finally {
+        setToggling(false);
+    }
+  };
 
   if (loading) return <div>Loading Stats...</div>;
 
@@ -58,8 +101,44 @@ const DeliveryDashboard = () => {
 
   return (
     <div>
-      <h1 style={{ marginBottom: '8px', fontSize: '1.875rem', fontWeight: 800 }}>Welcome Back!</h1>
-      <p style={{ color: '#64748b', marginBottom: '40px' }}>Here's what's happening with your deliveries today.</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <h1 style={{ fontSize: '1.875rem', fontWeight: 800, margin: 0 }}>Welcome Back!</h1>
+            {stats.deliveryRating !== undefined && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#fef3c7', padding: '4px 12px', borderRadius: '100px', border: '1px solid #fde68a' }}>
+                    <span style={{ color: '#d97706', fontSize: '1.1rem' }}>★</span>
+                    <span style={{ fontWeight: 800, color: '#92400e', fontSize: '0.9rem' }}>{stats.deliveryRating?.toFixed(1) || '0.0'}</span>
+                    <span style={{ color: '#d97706', fontSize: '0.75rem', marginLeft: '2px' }}>({stats.totalRatings || 0})</span>
+                </div>
+            )}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'white', padding: '8px 16px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: 600, color: isOnline ? '#10b981' : '#ef4444' }}>
+                {isOnline ? 'ONLINE' : 'OFFLINE'}
+            </span>
+            <button 
+                onClick={handleToggleOnline}
+                disabled={toggling}
+                style={{ 
+                    width: '44px', height: '24px', borderRadius: '12px', 
+                    backgroundColor: isOnline ? '#10b981' : '#e2e8f0', 
+                    position: 'relative', border: 'none', cursor: 'pointer',
+                    transition: 'all 0.3s'
+                }}
+            >
+                <div style={{ 
+                    width: '18px', height: '18px', borderRadius: '50%', background: 'white',
+                    position: 'absolute', top: '3px', left: isOnline ? '23px' : '3px',
+                    transition: 'all 0.3s'
+                }} />
+            </button>
+        </div>
+      </div>
+      <p style={{ color: '#64748b', marginBottom: '40px' }}>
+        {isOnline 
+            ? (assignedHub ? `Assigned to: ${assignedHub.name} Hub` : "Waiting for hub assignment...") 
+            : "Go online to start receiving assignments nearby."}
+      </p>
 
       <div className="delivery-status-grid">
         {statConfig.map((stat, idx) => (

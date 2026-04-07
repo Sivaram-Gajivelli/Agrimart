@@ -1,0 +1,6 @@
+
+C:\Users\sivay\Desktop\Projects\Final year Batch 14 Project\Agrimart\frontend\src\admin\AdminDeliveries.jsx
+  14:3  error  Parsing error: Identifier 'AlertCircle' has already been declared
+
+✖ 1 problem (1 error, 0 warnings)
+

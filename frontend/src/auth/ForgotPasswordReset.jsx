@@ -6,7 +6,6 @@ import "../assets/styles/Auth.css";
 // Background images matching Login.jsx
 import customerBg from "../assets/images/customer_login.png";
 import farmerBg from "../assets/images/slide1.jpg";
-import retailerBg from "../assets/images/retailer_login.png";
 
 // Reusing Icons from Login.jsx
 const EyeIcon = () => (
@@ -42,19 +41,17 @@ export default function ForgotPasswordReset() {
     // Role taglines
     const roleTaglines = {
         customer: "Fresh from farms, delivered to your doorstep.",
-        farmer: "Sell smarter. Earn better. Grow digitally.",
-        retailer: "Stock faster. Sell wider. Scale your business."
+        farmer: "Sell smarter. Earn better. Grow digitally."
     };
 
     // Role backgrounds
     const roleBackgrounds = {
         customer: customerBg,
-        farmer: farmerBg,
-        retailer: retailerBg
+        farmer: farmerBg
     };
 
     const bgImage = roleBackgrounds[safeRole] || customerBg;
-    const tagline = roleTaglines[safeRole] || "Connecting farmers, retailers, and consumers in one digital marketplace.";
+    const tagline = roleTaglines[safeRole] || "Connecting farmers and consumers in one digital marketplace.";
 
     useEffect(() => {
         // Prevent direct access without verification state

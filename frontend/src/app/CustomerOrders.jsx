@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import { Link } from 'react-router-dom';
+import StarRating from '../components/StarRating';
 
 const produceImages = import.meta.glob('../assets/images/produce/*.{png,jpg,jpeg,webp,svg}', { eager: true });
 const imageMap = {};
@@ -48,8 +49,8 @@ const getTimelineSteps = (status) => {
     const steps = [
         { label: 'Order Placed', key: 'Order Placed' },
         { label: 'Processing', key: 'Processing' },
-        { label: 'In Transit to Hub', key: 'Picked Up' },
-        { label: 'At Hub (QC)', key: 'Quality Checked' },
+        { label: 'Quality Checked', key: 'Quality Checked' },
+        { label: 'Hub Packed', key: 'Hub Packed' },
         { label: 'Out for Delivery', key: 'Out for Delivery' },
         { label: 'Delivered', key: 'Delivered' }
     ];
@@ -59,10 +60,6 @@ const getTimelineSteps = (status) => {
     const statusOrder = [
         'Order Placed', 
         'Processing', 
-        'Farmer Packed', 
-        'Ready for Pickup', 
-        'Picked Up', 
-        'Delivered to Hub', 
         'Quality Checked', 
         'Hub Packed', 
         'Ready for Delivery', 
@@ -78,19 +75,26 @@ const getTimelineSteps = (status) => {
         let active = false;
 
         // Custom mapping for milestone completion
-        if (index === 0) completed = true; // Order Placed is always done
+        if (index === 0) completed = true; // Order Placed
         if (index === 1 && currentIdx >= 1) completed = true; // Processing milestone
-        if (index === 2 && currentIdx >= 4) completed = true; // In Transit milestone (Picked Up)
-        if (index === 3 && currentIdx >= 6) completed = true; // At Hub milestone (Quality Checked)
-        if (index === 4 && currentIdx >= 9) completed = true; // Out for Delivery milestone
-        if (index === 5 && currentIdx >= 10) completed = true; // Delivered milestone
+        if (index === 2 && currentIdx >= 2) completed = true; // QC milestone
+        if (index === 3 && currentIdx >= 3) completed = true; // Packed milestone
+        if (index === 4 && currentIdx >= 5) completed = true; // Out for Delivery milestone
+        if (index === 5 && currentIdx >= 6) completed = true; // Delivered milestone
 
-        // Set active status
-        if (index === 1 && currentIdx >= 1 && currentIdx < 4) active = true;
-        if (index === 2 && currentIdx >= 4 && currentIdx < 6) active = true;
-        if (index === 3 && currentIdx >= 6 && currentIdx < 9) active = true;
-        if (index === 4 && currentIdx === 9) active = true;
-        if (index === 5 && currentIdx >= 10) active = true;
+        // Set active status (only if not completed)
+        if (!completed) {
+            if (index === 1 && currentIdx === 1) active = true;
+            if (index === 2 && currentIdx === 2) active = true;
+            if (index === 3 && (currentIdx === 3 || currentIdx === 4)) active = true;
+            if (index === 4 && currentIdx === 5) active = true;
+            if (index === 5 && currentIdx >= 6) active = true;
+        }
+
+        if (currentIdx >= 7) {
+            completed = true;
+            active = false;
+        }
 
         return { ...step, completed, active };
     });
@@ -148,6 +152,18 @@ const CustomerOrders = () => {
         }
     };
 
+    const handleRateAgent = async (assignmentId, rating) => {
+        try {
+            await axios.post(`/api/delivery/assignments/${assignmentId}/rate`, { rating }, { withCredentials: true });
+            toast.success("Thank you for your feedback!");
+            // Refresh orders
+            const response = await axios.get('/api/orders/customer', { withCredentials: true });
+            setOrders(response.data);
+        } catch (error) {
+            toast.error("Failed to submit rating");
+        }
+    };
+
     useEffect(() => {
         const fetchOrders = async () => {
             try {
@@ -190,7 +206,11 @@ const CustomerOrders = () => {
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                     {orders.map(order => (
-                        <div key={order._id} style={{ border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden', background: '#fff' }}>
+                        <div 
+                            key={order._id} 
+                            className={`order-card ${['Delivered', 'Completed'].includes(order.trackingStatus) && !order.isRated ? 'can-rate' : ''}`}
+                            style={{ border: '1px solid #e0e0e0', borderRadius: '12px', overflow: 'hidden', background: '#fff', transition: '0.3s all ease' }}
+                        >
                             <div style={{ background: '#f0f2f2', padding: '15px 20px', borderBottom: '1px solid #e0e0e0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
                                 <div>
                                     <p style={{ margin: 0, fontSize: '0.85rem', color: '#565959', textTransform: 'uppercase' }}>Order Placed</p>
@@ -234,16 +254,91 @@ const CustomerOrders = () => {
                                     <div style={{ flex: 1 }}>
                                         <p style={{ margin: '5px 0', fontSize: '0.95rem' }}>
                                             <strong>Status:</strong> <span style={{ 
-                                                padding: '3px 8px', 
-                                                borderRadius: '12px', 
-                                                fontSize: '0.85rem',
-                                                fontWeight: 'bold',
-                                                background: order.trackingStatus === 'Completed' ? '#d4edda' : '#fff3cd',
-                                                color: order.trackingStatus === 'Completed' ? '#155724' : '#856404',
+                                                padding: '3px 12px', 
+                                                borderRadius: '20px', 
+                                                fontSize: '0.8rem',
+                                                fontWeight: '700',
+                                                background: order.trackingStatus === 'Completed' ? '#dcfce7' : '#fef9c3',
+                                                color: order.trackingStatus === 'Completed' ? '#166534' : '#854d0e',
+                                                display: 'inline-block'
                                             }}>
                                                 {order.trackingStatus || 'Processing'}
                                             </span>
                                         </p>
+                                        
+                                        {/* 🚀 NEW: Delivery Rating Prompt with Hover and Badge logic */}
+                                        {['Delivered', 'Completed'].includes(order.trackingStatus) && order.deliveryAssignmentId && (
+                                            <div 
+                                                className="rating-section"
+                                                style={{ 
+                                                    marginTop: '12px', 
+                                                    padding: '10px 16px', 
+                                                    background: order.isRated ? '#f0fdf4' : '#fff7ed', 
+                                                    borderRadius: '10px', 
+                                                    border: order.isRated ? '1px solid #dcfce7' : '1px solid #ffedd5', 
+                                                    display: 'flex', 
+                                                    justifyContent: 'space-between', 
+                                                    alignItems: 'center',
+                                                    transition: '0.3s all ease'
+                                                }}
+                                            >
+                                                <div style={{ flex: 1 }}>
+                                                    {order.isRated ? (
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <span style={{ 
+                                                                background: '#10b981', 
+                                                                color: 'white', 
+                                                                padding: '2px 8px', 
+                                                                borderRadius: '4px', 
+                                                                fontSize: '0.7rem', 
+                                                                fontWeight: 'bold',
+                                                                textTransform: 'uppercase'
+                                                            }}>Feedback Received</span>
+                                                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#15803d' }}>Thank you for helping us improve!</p>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#9a3412' }}>How was your delivery?</p>
+                                                            <p style={{ margin: 0, fontSize: '0.75rem', color: '#c2410c' }} className="hover-text">Hover to rate</p>
+                                                        </>
+                                                    )}
+                                                </div>
+                                                
+                                                {!order.isRated && (
+                                                    <div className="star-reveal" style={{ 
+                                                        opacity: 0, 
+                                                        visibility: 'hidden', 
+                                                        transform: 'scale(0.9)', 
+                                                        transition: '0.3s all cubic-bezier(0.4, 0, 0.2, 1)' 
+                                                    }}>
+                                                        <StarRating 
+                                                            size={20} 
+                                                            onRate={(r) => handleRateAgent(order.deliveryAssignmentId, r)} 
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        <style>{`
+                                            .order-card.can-rate:hover {
+                                                border-color: #fb923c !important;
+                                                box-shadow: 0 4px 12px rgba(251, 146, 60, 0.1);
+                                            }
+                                            .order-card.can-rate:hover .rating-section {
+                                                background: #ffedd5 !important;
+                                                border-color: #fed7aa !important;
+                                            }
+                                            .order-card.can-rate:hover .star-reveal {
+                                                opacity: 1 !important;
+                                                visibility: visible !important;
+                                                transform: scale(1) !important;
+                                            }
+                                            .order-card.can-rate:hover .hover-text {
+                                                display: none;
+                                            }
+                                        `}</style>
+
                                         {order.trackingStatus === 'Cancelled' && order.cancellationReason && (
                                             <p style={{ margin: '5px 0', fontSize: '0.85rem', color: '#d32f2f' }}>
                                                 <strong>Cancel Reason:</strong> {order.cancellationReason}

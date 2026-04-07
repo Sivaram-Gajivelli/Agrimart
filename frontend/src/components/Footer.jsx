@@ -26,7 +26,7 @@ const Footer = () => {
           <ul>
             <li>Farmers</li>
             <li>Customers</li>
-            <li>Retailers</li>
+            <li>Delivery Partners</li>
           </ul>
         </div>
 

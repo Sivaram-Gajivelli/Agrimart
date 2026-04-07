@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { CheckCircle, XCircle, Eye, RefreshCw, Filter } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, RefreshCw, Filter, Ban } from 'lucide-react';
 import '../assets/styles/AdminUsers.css'; // Reusing table styles
 
 const AdminProducts = () => {
@@ -66,36 +66,60 @@ const AdminProducts = () => {
                                 <th>Product Name</th>
                                 <th>Farmer</th>
                                 <th>Price</th>
+                                <th>Logistics</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredProducts.map(product => (
-                                <tr key={product._id}>
-                                    <td><strong>{product.productName}</strong></td>
-                                    <td>{product.farmer?.name || 'Unknown'}</td>
-                                    <td>₹{product.pricePerKg} / {product.unit}</td>
-                                    <td>
-                                        <span className={`badge badge-${product.verificationStatus === 'verified' ? 'success' : product.verificationStatus === 'pending' ? 'warning' : 'danger'}`}>
-                                            {product.verificationStatus}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div className="action-buttons">
-                                            {product.verificationStatus === 'pending' && (
-                                                <>
-                                                    <button className="action-btn approve" onClick={() => handleApprove(product._id, 'verified')}><CheckCircle size={16} /></button>
-                                                    <button className="action-btn reject" onClick={() => handleApprove(product._id, 'rejected')}><XCircle size={16} /></button>
-                                                </>
+                            {filteredProducts.map(product => {
+                                const canVerify = product.deliveryStatus === 'At Hub';
+                                const isFinalized = product.verificationStatus === 'verified' || product.verificationStatus === 'rejected';
+                                
+                                return (
+                                    <tr key={product._id}>
+                                        <td><strong>{product.productName}</strong></td>
+                                        <td>{product.farmer?.name || 'Unknown'}</td>
+                                        <td>₹{product.pricePerKg} / {product.unit}</td>
+                                        <td>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: canVerify ? '#10b981' : '#64748b' }}>
+                                                {product.deliveryStatus || 'Listed'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span className={`badge badge-${product.verificationStatus === 'verified' ? 'success' : product.verificationStatus === 'pending' ? 'warning' : 'danger'}`}>
+                                                {product.verificationStatus}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {!isFinalized ? (
+                                                <div className="action-buttons">
+                                                    <button 
+                                                        className={`action-btn approve ${!canVerify ? 'disabled' : ''}`} 
+                                                        onClick={() => canVerify && handleApprove(product._id, 'verified')}
+                                                        title={canVerify ? "Approve Produce" : "Cannot verify until produce is At Hub"}
+                                                        style={{ 
+                                                            cursor: canVerify ? 'pointer' : 'not-allowed',
+                                                            opacity: canVerify ? 1 : 0.5
+                                                        }}
+                                                    >
+                                                        {canVerify ? <CheckCircle size={18} /> : <Ban size={18} color="#94a3b8" />}
+                                                    </button>
+                                                    <button 
+                                                        className="action-btn reject" 
+                                                        onClick={() => handleApprove(product._id, 'rejected')} 
+                                                        title="Reject Produce"
+                                                    >
+                                                        <XCircle size={18} />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>Finalized</span>
                                             )}
-                                            {product.verificationStatus === 'verified' && (
-                                                <button className="action-btn reject" onClick={() => handleApprove(product._id, 'rejected')}><XCircle size={16} /></button>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 )}

@@ -1,9 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const Product = require('../models/productModel');
+const Hub = require('../models/hubModel');
+const User = require('../models/userModel');
 const auth = require('../middleware/authMiddleware');
 const { translate } = require('@vitalets/google-translate-api');
 const Fuse = require('fuse.js');
+const { getDistance } = require('../utils/distanceHelper');
 
 // Super Dictionary: High-Precision Agricultural Terms in 12 Languages
 const seedDictionary = {
@@ -35,11 +38,20 @@ const translationCache = new Map();
 
 // Optimized Dictionary Matcher
 const getDictionaryMatch = (query) => {
-    if (seedDictionary[query]) return seedDictionary[query];
-    const dictKeys = Object.keys(seedDictionary).map(key => ({ key, val: seedDictionary[key] }));
-    const fuse = new Fuse(dictKeys, { keys: ['key'], threshold: 0.4 });
-    const match = fuse.search(query);
-    return match.length > 0 ? match[0].item.val : null;
+    if (!query) return null;
+    const normalizedQuery = query.trim().toLowerCase();
+    
+    // 1. Direct or fuzzy dictionary lookup in seed
+    for (const key of Object.keys(seedDictionary)) {
+        if (key.toLowerCase() === normalizedQuery) return seedDictionary[key];
+    }
+    
+    // 2. Fallback to reverse lookup
+    for (const key of Object.keys(reverseSeedDictionary)) {
+        if (key.toLowerCase() === normalizedQuery) return key; 
+    }
+    
+    return null;
 };
 
 // Precise Reverse Dictionary for 12 Languages
@@ -71,6 +83,7 @@ router.get('/search', async (req, res) => {
     try {
         let { q, lang } = req.query;
         if (!q) return res.json([]);
+        q = q.trim();
         if (lang) lang = lang.split('-')[0];
 
         let englishQuery = q;
@@ -78,24 +91,20 @@ router.get('/search', async (req, res) => {
         
         if (dictMatch) {
             englishQuery = dictMatch;
-        } else if (translationCache.has(q)) {
-            englishQuery = translationCache.get(q);
+        } else if (translationCache.has(q.toLowerCase())) {
+            englishQuery = translationCache.get(q.toLowerCase());
         } else {
             try {
                 const tr = await translate(q, { to: 'en', from: 'auto' });
                 englishQuery = tr.text;
-                translationCache.set(q, englishQuery);
+                translationCache.set(q.toLowerCase(), englishQuery);
             } catch (err) {
                 englishQuery = q;
             }
         }
 
         const products = await Product.find({
-            $or: [
-                { verificationStatus: { $in: ['verified', 'pending', 'quality assessment'] } },
-                { verificationStatus: { $exists: false } },
-                { verificationStatus: null }
-            ]
+            verificationStatus: 'verified'
         }).populate('farmer', 'name email phone').sort({ createdAt: -1 });
 
         const lowerQ = englishQuery.toLowerCase();
@@ -106,16 +115,24 @@ router.get('/search', async (req, res) => {
             p.category.toLowerCase().includes(lowerQ)
         );
 
-        // Fuzzy fallback
+        // Fuzzy fallback (Stricter threshold)
         const fuse = new Fuse(products, {
             keys: [{ name: 'productName', weight: 4 }, { name: 'category', weight: 2 }],
-            threshold: 0.5, 
+            threshold: 0.35, // Stricter threshold to avoid irrelevant results
         });
         const fuzzyResults = fuse.search(englishQuery).map(r => r.item);
 
-        const combined = [...matchingProducts, ...fuzzyResults];
-        const uniqueItems = Array.from(new Map(combined.map(i => [i._id.toString(), i])).values());
-        let finalResults = uniqueItems.slice(0, 15);
+        // Combine results: Priority to inclusive matches, then fuzzy
+        const combined = [...matchingProducts];
+        
+        // Only add fuzzy results that aren't already included
+        fuzzyResults.forEach(item => {
+            if (!combined.some(p => p._id.toString() === item._id.toString())) {
+                combined.push(item);
+            }
+        });
+
+        let finalResults = combined.slice(0, 15);
 
         // Robust Localization
         if (lang && lang !== 'en') {
@@ -165,11 +182,7 @@ router.get('/my-products', auth, async (req, res) => {
 router.get('/marketplace', async (req, res) => {
     try {
         const products = await Product.find({ 
-            $or: [
-                { verificationStatus: { $in: ['verified', 'pending', 'quality assessment'] } },
-                { verificationStatus: { $exists: false } },
-                { verificationStatus: null }
-            ]
+            verificationStatus: 'verified'
         }).populate('farmer', 'name email phone').sort({ createdAt: -1 });
         res.json(products);
     } catch (error) {
@@ -206,7 +219,39 @@ router.post('/:id/reviews', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
     try {
         if (req.user.role !== 'farmer') return res.status(403).json({ message: 'Only farmers can list products.' });
-        const newProduct = new Product({ ...req.body, farmer: req.user.id });
+        
+        let nearestHub = null;
+        let lat = req.body.latitude;
+        let lng = req.body.longitude;
+
+        // If no product coordinates, try to get from farmer's profile
+        if (!lat || !lng) {
+            const farmer = await User.findById(req.user.id);
+            if (farmer && farmer.latitude && farmer.longitude) {
+                lat = farmer.latitude;
+                lng = farmer.longitude;
+            }
+        }
+
+        if (lat && lng) {
+            const hubs = await Hub.find({ status: 'active' });
+            let minDistance = Infinity;
+            hubs.forEach(hub => {
+                const dist = getDistance(lat, lng, hub.latitude, hub.longitude);
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    nearestHub = hub._id;
+                }
+            });
+        }
+
+        const newProduct = new Product({ 
+            ...req.body, 
+            farmer: req.user.id,
+            nearestHub: nearestHub,
+            initialQuantity: req.body.quantityAvailable,
+            verificationStatus: 'pending' // Force pending on creation
+        });
         const savedProduct = await newProduct.save();
         res.status(201).json(savedProduct);
     } catch (error) {
