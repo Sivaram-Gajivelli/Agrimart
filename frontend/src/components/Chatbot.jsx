@@ -19,8 +19,7 @@ const Chatbot = () => {
     const navigate = useNavigate();
     const messagesEndRef = useRef(null);
 
-    // Hide on checkout page
-    if (location.pathname === '/checkout') return null;
+    const isCheckoutPage = location.pathname === '/checkout';
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -217,6 +216,8 @@ const Chatbot = () => {
             navigate(path);
         }
     };
+
+    if (isCheckoutPage) return null;
 
     return (
         <div className={`chatbot-container ${isOpen ? 'window-open' : ''}`}>

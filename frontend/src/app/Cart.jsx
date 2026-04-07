@@ -155,7 +155,7 @@ const Cart = () => {
                             <div className="subtotal-info">
                                 <p>Subtotal ({calculateTotalItems()} items): <strong>₹{calculateSubtotal()}</strong></p>
                             </div>
-                            <button className="proceed-btn" onClick={() => navigate('/checkout')}>Proceed to Buy</button>
+                            <button type="button" className="proceed-btn" onClick={() => navigate('/checkout')}>Proceed to Buy</button>
                         </div>
                     </div>
                 )}

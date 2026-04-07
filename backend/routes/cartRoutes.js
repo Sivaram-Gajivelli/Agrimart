@@ -11,6 +11,13 @@ router.get('/', protect, async (req, res) => {
         let cart = await Cart.findOne({ user: req.user.id }).populate({ path: 'items.product', populate: { path: 'farmer', select: 'name' } });
         if (!cart) {
             cart = await Cart.create({ user: req.user.id, items: [] });
+        } else {
+            // Filter out items where product population results in null (deleted products)
+            const initialCount = cart.items.length;
+            cart.items = cart.items.filter(item => item.product !== null);
+            if (cart.items.length !== initialCount) {
+                await cart.save();
+            }
         }
         res.json(cart);
     } catch (error) {

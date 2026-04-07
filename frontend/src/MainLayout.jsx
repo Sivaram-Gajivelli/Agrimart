@@ -5,6 +5,7 @@ import Footer from "./components/Footer";
 import CartSidebar from "./components/CartSidebar";
 import Chatbot from "./components/Chatbot";
 import { useAuth } from "./context/AuthContext";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const MainLayout = () => {
   const { user } = useAuth();
@@ -18,7 +19,9 @@ const MainLayout = () => {
       <Navbar />
       <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
         <main style={{ flex: 1, minWidth: 0 }}>
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
         {isCustomer && !isCartPage && !isCheckoutPage && location.pathname !== '/orders' && <CartSidebar />}
       </div>

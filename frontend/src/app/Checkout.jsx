@@ -48,13 +48,13 @@ const getProductImage = (productName) => {
 };
 
 const Checkout = () => {
-    const { cart, refreshCart } = useCart();
-    const { user } = useAuth();
+    const { cart, loading, refreshCart } = useCart();
+    const { user, isAuthenticated } = useAuth();
     const navigate = useNavigate();
 
     const [address, setAddress] = useState('');
     const [isChangingAddress, setIsChangingAddress] = useState(false);
-    const [loading, setLoading] = useState(false);
+    const [orderLoading, setOrderLoading] = useState(false);
     const [deliveryData, setDeliveryData] = useState({});
     const [calculatingDelivery, setCalculatingDelivery] = useState(false);
     const [hubs, setHubs] = useState([]);
@@ -166,85 +166,98 @@ const Checkout = () => {
             setCalculatingDelivery(true);
             const deliveryFees = {};
             
-            const geocodeResult = await geocodeAddress(address);
-            
-            if (geocodeResult) {
-                const buyerCoords = geocodeResult.coordinates;
-                const buyerDistrict = geocodeResult.district;
-
-                let nearestHub = null;
-                let minDistance = Infinity;
-
-                const hubCoverage = {
-                    "Visakhapatnam": ["vizag", "visakhapatnam", "vizianagaram", "srikakulam", "anakapalli"],
-                    "Rajahmundry": ["east godavari", "west godavari", "konaseema", "eluru", "kakinada"],
-                    "Vijayawada": ["ntr", "krishna"],
-                    "Guntur": ["guntur", "palnadu", "bapatla"],
-                    "Nellore": ["nellore", "prakasam"],
-                    "Tirupati": ["tirupati", "chittoor", "annamayya"],
-                    "Kadapa": ["ysr kadapa", "kadapa", "ysr"],
-                    "Kurnool": ["kurnool", "nandyal"],
-                    "Anantapur": ["anantapur", "sri sathya sai"]
-                };
-
-                let assignedHubName = null;
-                const searchStr = (buyerDistrict || "") + " " + address;
-                const distLower = searchStr.toLowerCase();
+            try {
+                const geocodeResult = await geocodeAddress(address);
                 
-                for (const [hubName, districts] of Object.entries(hubCoverage)) {
-                    if (districts.some(d => distLower.includes(d))) {
-                        assignedHubName = hubName;
-                        break;
-                    }
-                }
+                if (geocodeResult && hubs.length > 0) {
+                    const buyerCoords = geocodeResult.coordinates;
+                    const buyerDistrict = geocodeResult.district;
 
-                if (assignedHubName) {
-                    nearestHub = hubs.find(h => h.name.toLowerCase() === assignedHubName.toLowerCase());
-                }
+                    let nearestHub = null;
+                    let minDistance = Infinity;
 
-                if (!nearestHub) {
-                    for (const hub of hubs) {
-                        const dist = getHaversineDistance(buyerCoords, hub.coordinates);
-                        if (dist < minDistance) {
-                            minDistance = dist;
-                            nearestHub = hub;
+                    const hubCoverage = {
+                        "Visakhapatnam": ["vizag", "visakhapatnam", "vizianagaram", "srikakulam", "anakapalli"],
+                        "Rajahmundry": ["east godavari", "west godavari", "konaseema", "eluru", "kakinada"],
+                        "Vijayawada": ["ntr", "krishna"],
+                        "Guntur": ["guntur", "palnadu", "bapatla"],
+                        "Nellore": ["nellore", "prakasam"],
+                        "Tirupati": ["tirupati", "chittoor", "annamayya"],
+                        "Kadapa": ["ysr kadapa", "kadapa", "ysr"],
+                        "Kurnool": ["kurnool", "nandyal"],
+                        "Anantapur": ["anantapur", "sri sathya sai"]
+                    };
+
+                    let assignedHubName = null;
+                    const searchStr = (buyerDistrict || "") + " " + address;
+                    const distLower = searchStr.toLowerCase();
+                    
+                    for (const [hubName, districts] of Object.entries(hubCoverage)) {
+                        if (districts.some(d => distLower.includes(d))) {
+                            assignedHubName = hubName;
+                            break;
                         }
                     }
-                } else {
-                    minDistance = getHaversineDistance(buyerCoords, nearestHub.coordinates);
+
+                    if (assignedHubName) {
+                        nearestHub = hubs.find(h => h && h.name && h.name.toLowerCase() === assignedHubName.toLowerCase());
+                    }
+
+                    if (!nearestHub) {
+                        for (const hub of hubs) {
+                            if (hub && hub.coordinates) {
+                                const dist = getHaversineDistance(buyerCoords, hub.coordinates);
+                                if (dist < minDistance) {
+                                    minDistance = dist;
+                                    nearestHub = hub;
+                                }
+                            }
+                        }
+                    } else if (nearestHub.coordinates) {
+                        minDistance = getHaversineDistance(buyerCoords, nearestHub.coordinates);
+                    }
+
+                    // Only proceed if we found a hub and its coordinates
+                    if (nearestHub && nearestHub.coordinates) {
+                        let drivingDistance = await getDistance(nearestHub.coordinates, buyerCoords);
+                        if (drivingDistance === null) {
+                            drivingDistance = minDistance; // Fallback to straight line
+                        }
+
+                        const totalCartWeight = validCartItems.reduce((total, item) => total + (item.quantity || 0), 0);
+                        
+                        if (totalCartWeight > 0) {
+                            let slabFee = 0;
+                            if (drivingDistance <= 20) slabFee = 20;
+                            else if (drivingDistance <= 50) slabFee = 30;
+                            else if (drivingDistance <= 100) slabFee = 50;
+                            else if (drivingDistance <= 200) slabFee = 70;
+                            else slabFee = 90;
+
+                            const transportRatePerKg = drivingDistance * 0.02;
+                            const totalWeightFee = totalCartWeight * transportRatePerKg;
+                            const cartTotalDeliveryFee = slabFee + totalWeightFee;
+                            const cartPlatformFee = 5;
+
+                            for (let item of validCartItems) {
+                                if (item.product && item.product._id) {
+                                    const weightRatio = item.quantity / totalCartWeight;
+                                    const itemDeliveryFee = cartTotalDeliveryFee * weightRatio;
+                                    const itemPlatformFee = cartPlatformFee * weightRatio;
+
+                                    deliveryFees[item.product._id] = {
+                                        distance: drivingDistance,
+                                        nearestHub: nearestHub.name,
+                                        itemDeliveryFee,
+                                        itemPlatformFee
+                                    };
+                                }
+                            }
+                        }
+                    }
                 }
-
-                let drivingDistance = await getDistance(nearestHub.coordinates, buyerCoords);
-                if (drivingDistance === null) {
-                    drivingDistance = minDistance; // Fallback to straight line
-                }
-
-                const totalCartWeight = cart.items.reduce((total, item) => total + item.quantity, 0);
-                
-                let slabFee = 0;
-                if (drivingDistance <= 20) slabFee = 20;
-                else if (drivingDistance <= 50) slabFee = 30;
-                else if (drivingDistance <= 100) slabFee = 50;
-                else if (drivingDistance <= 200) slabFee = 70;
-                else slabFee = 90;
-
-                const transportRatePerKg = drivingDistance * 0.02;
-                const totalWeightFee = totalCartWeight * transportRatePerKg;
-                const cartTotalDeliveryFee = slabFee + totalWeightFee;
-                const cartPlatformFee = 5;
-
-                for (let item of cart.items) {
-                    const weightRatio = item.quantity / totalCartWeight;
-                    const itemDeliveryFee = cartTotalDeliveryFee * weightRatio;
-                    const itemPlatformFee = cartPlatformFee * weightRatio;
-
-                    deliveryFees[item.product._id] = {
-                        distance: drivingDistance,
-                        nearestHub: nearestHub.name,
-                        itemDeliveryFee,
-                        itemPlatformFee
-                    };
-                }
+            } catch (err) {
+                console.error("Delivery calculation error:", err);
             }
             setDeliveryData(deliveryFees);
             setCalculatingDelivery(false);
@@ -260,6 +273,22 @@ const Checkout = () => {
         }
     }, [user]);
 
+    useEffect(() => {
+        refreshCart();
+    }, []);
+
+    const isCartFetchPending = isAuthenticated && user?.role === 'customer' && cart === null;
+
+    if (loading || isCartFetchPending) {
+        return (
+            <div className="checkout-container">
+                <div className="checkout-loading">
+                    <h2>Loading checkout...</h2>
+                </div>
+            </div>
+        );
+    }
+
     if (!cart || !cart.items || cart.items.length === 0) {
         return (
             <div className="checkout-container">
@@ -271,32 +300,63 @@ const Checkout = () => {
         );
     }
 
+    // Filter valid items once to avoid repetitive checks
+    const validCartItems = cart.items.filter(item => item && item.product);
+
+    if (validCartItems.length === 0) {
+        return (
+            <div className="checkout-container">
+                <div className="empty-checkout">
+                    <h2>Your cart contains invalid items</h2>
+                    <p>Some products are no longer available. Please update your cart.</p>
+                    <button onClick={() => navigate('/cart')}>Go to Cart</button>
+                </div>
+            </div>
+        );
+    }
+
     const calculateTotals = () => {
-        let subtotal = 0;
-        let totalWeight = 0;
-        let shippingHandling = 0;
-        let platformFee = 0;
-        
-        cart.items.forEach(item => {
-            subtotal += (item.product.pricePerKg * item.quantity);
-            totalWeight += item.quantity;
+        try {
+            let subtotal = 0;
+            let totalWeight = 0;
+            let shippingHandling = 0;
+            let platformFee = 0;
             
-            const data = deliveryData[item.product._id];
-            if (data) {
-                shippingHandling += data.itemDeliveryFee;
-                platformFee += data.itemPlatformFee;
-            }
-        });
-        
-        if (platformFee === 0 && cart.items.length > 0) platformFee = 5; // Fallback
-        
-        const tax = 0; // GST is 0
-        const orderTotal = subtotal + platformFee + shippingHandling + tax;
-        
-        return { subtotal, platformFee, shippingHandling, tax, orderTotal, totalWeight };
+            validCartItems.forEach(item => {
+                if (item && item.product) {
+                    const price = Number(item.product.pricePerKg) || 0;
+                    const qty = Number(item.quantity) || 0;
+                    subtotal += (price * qty);
+                    totalWeight += qty;
+                    
+                    const data = deliveryData[item.product._id];
+                    if (data) {
+                        shippingHandling += (Number(data.itemDeliveryFee) || 0);
+                        platformFee += (Number(data.itemPlatformFee) || 0);
+                    }
+                }
+            });
+            
+            if (platformFee === 0 && validCartItems.length > 0) platformFee = 5; // Fallback
+            
+            const tax = 0; // GST is 0
+            const orderTotal = Number(subtotal) + Number(platformFee) + Number(shippingHandling) + Number(tax);
+            
+            return { 
+                subtotal: Number(subtotal) || 0, 
+                platformFee: Number(platformFee) || 0, 
+                shippingHandling: Number(shippingHandling) || 0, 
+                tax: Number(tax) || 0, 
+                orderTotal: Number(orderTotal) || 0, 
+                totalWeight: Number(totalWeight) || 0 
+            };
+        } catch (error) {
+            console.error("Critical error in calculateTotals:", error);
+            return { subtotal: 0, platformFee: 0, shippingHandling: 0, tax: 0, orderTotal: 0, totalWeight: 0 };
+        }
     };
 
-    const totals = cart && cart.items ? calculateTotals() : null;
+    const totals = (cart && validCartItems.length > 0) ? calculateTotals() : { subtotal: 0, platformFee: 0, shippingHandling: 0, tax: 0, orderTotal: 0, totalWeight: 0 };
 
     const handlePlaceOrder = async () => {
         if (!address.trim()) {
@@ -304,28 +364,28 @@ const Checkout = () => {
             return;
         }
 
-        const validItems = cart.items.filter(item => item.product.quantityAvailable > 0);
-        const outOfStockItems = cart.items.filter(item => item.product.quantityAvailable <= 0);
+        const validItemsForCheckout = validCartItems.filter(item => item.product?.quantityAvailable > 0);
+        const outOfStockItems = validCartItems.filter(item => (item.product?.quantityAvailable || 0) <= 0);
 
-        if (validItems.length === 0) {
-            toast.error('All items are out of stock. Please remove them from cart.');
+        if (validItemsForCheckout.length === 0) {
+            toast.error('All available items are out of stock. Please remove them from cart.');
             return;
         }
 
         if (outOfStockItems.length > 0) {
-            toast.warning(`${outOfStockItems.map(i => i.product.productName).join(', ')} is out of stock and will be skipped.`);
+            toast.warning(`${outOfStockItems.map(i => i.product?.productName).join(', ')} is out of stock and will be skipped.`);
         }
 
-        setLoading(true);
+        setOrderLoading(true);
         try {
             if (address !== user.address) {
                     await axios.put('/api/user/profile-update', { address }, { withCredentials: true });
             }
 
-            const checkoutItems = validItems.map(item => {
-                const orderQty = Math.min(item.quantity, item.product.quantityAvailable);
+            const checkoutItems = validItemsForCheckout.map(item => {
+                const orderQty = Math.min(item.quantity, item.product?.quantityAvailable || item.quantity);
                 return {
-                    productId: item.product._id,
+                    productId: item.product?._id,
                     quantity: orderQty
                 };
             });
@@ -333,8 +393,8 @@ const Checkout = () => {
             // Calculate overall fees based on what was precalculated
             let totalDeliveryFee = 0;
             let totalPlatformFee = 0;
-            validItems.forEach(item => {
-                if (deliveryData[item.product._id]) {
+            validItemsForCheckout.forEach(item => {
+                if (item.product?._id && deliveryData[item.product._id]) {
                     totalDeliveryFee += deliveryData[item.product._id].itemDeliveryFee || 0;
                     totalPlatformFee += deliveryData[item.product._id].itemPlatformFee || 0;
                 }
@@ -358,7 +418,7 @@ const Checkout = () => {
             console.error('Error placing order:', error);
             toast.error(error.response?.data?.message || 'Failed to place order.');
         } finally {
-            setLoading(false);
+            setOrderLoading(false);
         }
     };
 
@@ -443,7 +503,7 @@ const Checkout = () => {
                     <section className="items-section">
                         <h2>3. Review items and shipping</h2>
                         <div className="items-list">
-                            {cart.items.map(item => (
+                            {validCartItems.map(item => (
                                 <div key={item.product._id} className="checkout-item">
                                     <div className="item-thumbnail">
                                         <img 
@@ -480,10 +540,10 @@ const Checkout = () => {
                         <div className="top-action">
                             <button 
                                 className="place-order-btn" 
-                                disabled={loading || !address.trim() || calculatingDelivery}
+                                disabled={orderLoading || !address.trim() || calculatingDelivery}
                                 onClick={handlePlaceOrder}
                             >
-                                {calculatingDelivery ? 'Wait, Calculating...' : loading ? 'Processing...' : 'Place your order'}
+                                {calculatingDelivery ? 'Wait, Calculating...' : orderLoading ? 'Processing...' : 'Place your order'}
                             </button>
                             <p className="agreement-text">
                                 By placing your order, you agree to Agrimart's <span className="link-text">privacy notice</span> and <span className="link-text">conditions of use</span>.

@@ -1,0 +1,130 @@
+AGRIMART PROJECT: LIBRARIES AND MODULES DOCUMENTATION
+
+This document provides a list of the libraries used in the Agrimart project and a detailed explanation of its core modules.
+
+1. LIBRARIES LIST
+-----------------
+
+A. BACKEND LIBRARIES
+- express
+- mongoose
+- jsonwebtoken (JWT)
+- bcryptjs
+- @google/genai
+- nodemailer
+- node-cron
+- fuse.js
+- cors
+- dotenv
+- express-validator
+- express-rate-limit
+- cookie-parser
+- csv-parser
+- crypto
+
+B. FRONTEND LIBRARIES
+- react
+- react-dom
+- vite
+- axios
+- react-router-dom
+- recharts
+- react-toastify
+- lucide-react
+- react-markdown
+
+C. DATA SCIENCE / MACHINE LEARNING (PYTHON)
+- pandas
+- scikit-learn
+- numpy
+- matplotlib
+
+
+2. PROJECT MODULE EXPLANATIONS
+----------------------------
+
+A. BACKEND ARCHITECTURE (MVC PATTERN)
+- Controllers (controllers/):
+    This module contains the "brains" of the application logic. Each controller handles a specific domain. For instance, the 'complaintController' manages user grievances, while the 'orderController' handles transaction workflows.
+
+- Models (models/):
+    This module defines the data structure for the MongoDB database.
+    - userModel.js: Manages profiles for Consumers, Farmers, Delivery Agents, and Admins.
+    - productModel.js: Stores details like price, stock (kg), and quality for farm produce.
+    - orderModel.js: Handles the lifecycle of a purchase from "Placed" to "Delivered".
+    - hubModel.js: Stores coordinates and details for logistics collection centers.
+    - deliveryAssignmentModel.js: Tracks which order is assigned to which delivery agent.
+
+- Routes (routes/):
+    Acts as the entry point for API requests. It maps URLs (endpoints) to specific function calls in the controllers. This keeps the API organized and easy to maintain.
+
+- Middleware (middleware/):
+    Contains modules that run before a request reaches a controller. Key functions include 'authMiddleware' (verifying JWT tokens) and security checks like rate-limiting.
+
+- Utils (utils/):
+    A repository of shared utility functions used across the backend. This includes email templates for Nodemailer and distance calculation logic for logistics.
+
+
+B. AGRIMART AI CHATBOT MODULE
+The Agrimart AI Assistant is a specialized module designed to bridge the gap between complex data and user-friendly interaction. It serves as a 24/7 support agent for both farmers and customers.
+
+- Core AI (Gemini 1.5 Pro):
+    Uses Google's Generative AI to understand natural language queries, even with spelling or grammar mistakes. It provides contextual answers about Agrimart's features, agriculture, and order management.
+
+- Intelligent Tool Calling & Features:
+    - Live Market Prices: Directly integrates with Government APIs (data.gov.in) to provide real-time modal prices for commodities like Tomatoes, Potatoes, and Onions.
+    - Price Forecasting: Links the AI to the project's Machine Learning model to provide a 7-day price prediction, advising farmers on the best day to sell for maximum profit.
+    - Smart Navigation: Detects user intent (e.g., "Take me to my orders") and provides one-click navigation buttons to specific pages.
+    - Order & Complaint Handling: Allows users to track order status by ID and register formal complaints directly within the chat interface.
+
+- Advanced Engineering:
+    - LRU Caching: Stores frequent queries to provide instant responses and reduce external API costs.
+    - Role-Based Logic: Restricts sensitive information and features based on the user's role (Farmer vs. Customer).
+    - Multi-lingual Support: Communicates effectively in English, Telugu, Hindi, and Tamil.
+
+
+C. FRONTEND STRUCTURE
+- Components (components/):
+    The building blocks of the UI. This includes reusable items like the 'Navbar', 'Footer', 'Search Bar', and 'Product Cards' used in the marketplace.
+
+- Context (context/):
+    Manages the global state of the application. It ensures that user authentication status and shopping cart data are consistent across all pages.
+
+- Services (services/):
+    Dedicated modules for handling network requests (using Axios). By isolating API calls, the frontend components remain clean and focused only on rendering the UI.
+
+- App Modules (app/, auth/, admin/, delivery/):
+    These directories house the specific views and pages for different user roles (Marketplace, Farmer Dashboard, Admin Panel, and Delivery Portal).
+
+
+D. DATA SCIENCE & PREDICTIONS
+- random_forests.py:
+    The core machine learning module. It implements the Random Forest Regression algorithm to analyze historical vegetable price data and predict future market trends.
+
+- clean_data.py:
+    A data preprocessing module that handles missing values, encodes categorical data, and prepares datasets for the ML model.
+
+- Datasets (datasets/):
+    Contains the raw CSV files related to crop prices and historical sales used to train the prediction models.
+
+
+3. PROJECT SUMMARY
+-----------------
+Agrimart is built on a modular design that separates concerns:
+1. The Backend follows an MVC pattern for robust data management.
+2. The AI Chatbot acts as an intelligent layer for real-time support and data visualization.
+3. The Frontend uses a component-based architecture for a responsive User Experience.
+4. The Data Science module provides predictive intelligence to help farmers make informed pricing decisions.
+
+
+4. SOFTWARE REQUIREMENTS
+-----------------------
+- Development Environment: Node.js (v18.0 or higher), npm (v9.0 or higher)
+- Backend Stack: Express.js (v5.2 or higher)
+- Frontend Framework: React.js (v19.0 or higher) with Vite build tool
+- Programming Languages: JavaScript (ES6+), Python (v3.10 or higher for ML)
+- Machine Learning Libraries: Pandas, Scikit-learn
+- Database: MongoDB (v6.0 or higher) or MongoDB Atlas
+- External APIs: Google Gemini API (for AI Chatbot), Data.gov.in API (for Live Prices)
+- Operating System: Windows 10/11, Linux, or macOS
+- Web Browser: Modern browsers (Chrome, Firefox, Safari, Edge)
