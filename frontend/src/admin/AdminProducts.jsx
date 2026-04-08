@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { CheckCircle, XCircle, Eye, RefreshCw, Filter, Ban } from 'lucide-react';
+import { getProductImage } from '../utils/imageHelper';
 import '../assets/styles/AdminUsers.css'; // Reusing table styles
 
 const AdminProducts = () => {
@@ -78,7 +79,16 @@ const AdminProducts = () => {
                                 
                                 return (
                                     <tr key={product._id}>
-                                        <td><strong>{product.productName}</strong></td>
+                                        <td style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#f1f5f9', overflow: 'hidden', flexShrink: 0 }}>
+                                                <img 
+                                                    src={getProductImage(product.productName) || product.image} 
+                                                    alt={product.productName} 
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                                />
+                                            </div>
+                                            <strong>{product.productName}</strong>
+                                        </td>
                                         <td>{product.farmer?.name || 'Unknown'}</td>
                                         <td>₹{product.pricePerKg} / {product.unit}</td>
                                         <td>

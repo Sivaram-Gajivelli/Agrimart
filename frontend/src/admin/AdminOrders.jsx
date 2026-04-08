@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { RefreshCw, Package, User, Truck, MapPin, CheckCircle, Clock, Search, AlertCircle } from 'lucide-react';
+import { getProductImage } from '../utils/imageHelper';
 import '../assets/styles/AdminUsers.css';
 
 /**
@@ -387,8 +388,8 @@ const AdminOrders = () => {
                                                         background: '#f3f4f6', flexShrink: 0, border: '1px solid #e5e7eb',
                                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                     }}>
-                                                        {item.product?.image
-                                                            ? <img src={item.product?.image} alt={item.product?.productName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        {getProductImage(item.product?.productName) || item.product?.image
+                                                            ? <img src={getProductImage(item.product?.productName) || item.product?.image} alt={item.product?.productName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                             : <Package size={16} color="#9ca3af" />
                                                         }
                                                     </div>

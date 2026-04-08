@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import "./assets/styles/App.css";
@@ -75,7 +75,6 @@ function App() {
             theme="colored"
           />
           <div className="app">
-            <Navbar />
             <Routes>
               {/* Public & Customer/Farmer Shared Routes inside MainLayout */}
               <Route element={<MainLayout />}>
@@ -135,8 +134,6 @@ function App() {
                 <Route path="profile" element={<DeliveryProfile />} />
               </Route>
             </Routes>
-            <Footer />
-            <Chatbot />
           </div>
         </CartProvider>
       </AuthProvider>

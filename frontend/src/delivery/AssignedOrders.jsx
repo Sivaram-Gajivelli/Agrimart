@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Package, MapPin, Phone, Truck, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { getProductImage } from '../utils/imageHelper';
 import '../assets/styles/Delivery.css';
 
 const AssignedOrders = () => {
@@ -153,7 +154,7 @@ const AssignedOrders = () => {
                           {items.map((item, i) => (
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                               <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#f1f5f9', overflow: 'hidden' }}>
-                                {item.product?.image ? <img src={item.product?.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : <Package size={20} style={{ padding: '10px' }} color="#94a3b8" />}
+                                {getProductImage(item.product?.productName) || item.product?.image ? <img src={getProductImage(item.product?.productName) || item.product?.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : <Package size={20} style={{ padding: '10px' }} color="#94a3b8" />}
                               </div>
                               <div>
                                 <p style={{ margin: 0, fontWeight: 500, fontSize: '0.925rem' }}>{item.product?.productName}</p>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { Plus, MapPin, Trash2, RefreshCw, Ban, CheckCircle, XCircle } from 'lucide-react';
+import { getProductImage } from '../utils/imageHelper';
 import '../assets/styles/AdminUsers.css';
 
 const AdminHubs = () => {
@@ -291,6 +292,9 @@ const AdminHubs = () => {
                                 {(() => {
                                     const filteredItems = hubOrders.filter(item => {
                                         // QC only shows items that have arrived (including passed QC)
+                                        // User Fix: Don't show customer orders in the hub quality check tab
+                                        if (item.itemType === 'Order') return false;
+
                                         const inEligibleStatuses = ['Hub Packed', 'Ready for Delivery', 'Out for Delivery', 'Delivered', 'Completed'];
                                         if (inEligibleStatuses.includes(item.trackingStatus)) return false;
                                         
@@ -337,12 +341,17 @@ const AdminHubs = () => {
                                             {item.itemType === 'Order' ? (
                                                 <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
                                                     {item.items.map((it, idx) => (
-                                                        <img key={idx} src={it.product?.image} style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #f1f5f9' }} title={it.product?.productName} />
+                                                        <img 
+                                                            key={idx} 
+                                                            src={getProductImage(it.product?.productName) || it.product?.image} 
+                                                            style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #f1f5f9' }} 
+                                                            title={it.product?.productName} 
+                                                        />
                                                     ))}
                                                 </div>
                                             ) : (
                                                 <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', alignItems: 'center' }}>
-                                                    <img src={item.image} style={{ width: '50px', height: '50px', borderRadius: '10px', objectFit: 'cover' }} />
+                                                    <img src={getProductImage(item.productName) || item.image} style={{ width: '50px', height: '50px', borderRadius: '10px', objectFit: 'cover' }} />
                                                     <div>
                                                         <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700 }}>{item.productName}</p>
                                                         <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>{item.quantity} {item.unit}</p>
@@ -428,7 +437,7 @@ const AdminHubs = () => {
                                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                                                             {item.items.map((it, idx) => (
                                                                 <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc', padding: '6px 12px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
-                                                                    <img src={it.product?.image} style={{ width: '20px', height: '20px', borderRadius: '4px', objectFit: 'cover' }} />
+                                                                    <img src={getProductImage(it.product?.productName) || it.product?.image} style={{ width: '20px', height: '20px', borderRadius: '4px', objectFit: 'cover' }} />
                                                                     <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{it.product?.productName} ({it.quantity}{it.product?.unit})</span>
                                                                 </div>
                                                             ))}
