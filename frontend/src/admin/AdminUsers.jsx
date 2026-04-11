@@ -61,7 +61,7 @@ const AdminUsers = () => {
       </div>
 
       <div className="users-tabs">
-        {['farmer', 'customer', 'retailer', 'delivery_partner'].map(role => (
+        {['farmer', 'customer', 'delivery_partner'].map(role => (
           <button 
             key={role}
             className={`tab-btn ${activeTab === role ? 'active' : ''}`}

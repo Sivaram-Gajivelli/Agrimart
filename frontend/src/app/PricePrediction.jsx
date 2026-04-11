@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { useAuth } from '../context/AuthContext';
 
 // Glob import all images from assets produce directory
 const produceImages = import.meta.glob('../assets/images/produce/*.{png,jpg,jpeg,webp,svg}', { eager: true });
@@ -49,6 +50,7 @@ const PricePrediction = () => {
     const [loading, setLoading] = useState(true);
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [lastUpdated, setLastUpdated] = useState(null);
+    const { user } = useAuth();
 
     useEffect(() => {
         const fetchPredictions = async () => {
@@ -158,9 +160,26 @@ const PricePrediction = () => {
                 // Convert to array and get primary prediction (day 1)
                 const formatted = Object.values(grouped).map(group => {
                     const firstDay = group.forecast[0];
+                    
+                    // Find Peak Day
+                    let bestPriceVal = -1;
+                    let bestDayIdx = 0;
+                    const dayLabels = ['Tomorrow', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'];
+                    
+                    group.forecast.forEach((day, idx) => {
+                        const p = parseFloat(day.predicted);
+                        if (p > bestPriceVal) {
+                            bestPriceVal = p;
+                            bestDayIdx = idx;
+                        }
+                    });
+
                     return {
                         ...group,
-                        ...firstDay // spread primary day properties for easy access on main card
+                        ...firstDay,
+                        bestDayLabel: dayLabels[bestDayIdx],
+                        bestDayDate: group.forecast[bestDayIdx].date,
+                        bestDayPrice: bestPriceVal.toFixed(2)
                     };
                 });
 
@@ -251,7 +270,7 @@ const PricePrediction = () => {
                                 <div>
                                     <h3 style={{ fontSize: '1.4rem', color: 'var(--text-dark)', margin: '0 0 4px 0' }}>{pred.name}</h3>
                                     <span style={{ fontSize: '0.9rem', color: '#64748b', background: '#f1f5f9', padding: '2px 8px', borderRadius: '12px' }}>
-                                        Next Day: {pred.date}
+                                         Next Day: {pred.date}
                                     </span>
                                 </div>
                             </div>
@@ -269,7 +288,7 @@ const PricePrediction = () => {
                                 <div style={{ textAlign: 'right' }}>
                                     <p style={{ fontSize: '0.9rem', color: '#64748b', margin: '0 0 4px 0' }}>Predicted Price</p>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
-                                        <p style={{ fontSize: '1.5rem', fontWeight: '900', color: getTrendColor(pred.trend), margin: 0 }}>₹{pred.predicted}</p>
+                                        <p style={{ fontSize: '1.5rem', fontWeight: '900', color: getTrendColor(pred.trend) }}>₹{pred.predicted}</p>
                                         <span style={{ 
                                             display: 'flex',
                                             alignItems: 'center',
@@ -292,13 +311,29 @@ const PricePrediction = () => {
                             </div>
 
                             <div style={{ padding: '15px 0 0 0', borderTop: '1px solid #f1f5f9', marginTop: '15px' }}>
+                                {user?.role === 'farmer' ? (
+                                    <div style={{ background: '#f0fdf4', padding: '10px', borderRadius: '8px', border: '1px solid #dcfce7' }}>
+                                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#166534', fontWeight: 'bold' }}>
+                                            💡 Sell on {pred.bestDayLabel} ({pred.bestDayDate}) for max profit: ₹{pred.bestDayPrice}/kg
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div style={{ background: '#fef2f2', padding: '10px', borderRadius: '8px', border: '1px solid #fee2e2' }}>
+                                         <p style={{ margin: 0, fontSize: '0.85rem', color: '#991b1b', fontWeight: 'bold' }}>
+                                            ⚠️ Prices peak on {pred.bestDayLabel}. Plan your purchase accordingly.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div style={{ padding: '15px 0 0 0', borderTop: '1px solid #f1f5f9', marginTop: '10px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                    <span style={{ fontSize: '0.9rem', color: '#64748b' }}>Prediction confidence:</span>
-                                    <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: pred.confidence === 'High' ? '#10b981' : pred.confidence === 'Medium' ? '#f59e0b' : '#ef4444' }}>{pred.confidence}</span>
+                                    <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Prediction confidence:</span>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: pred.confidence === 'High' ? '#10b981' : pred.confidence === 'Medium' ? '#f59e0b' : '#ef4444' }}>{pred.confidence}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ fontSize: '0.9rem', color: '#64748b' }}>Expected range:</span>
-                                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--text-dark)' }}>₹{pred.rangeMin} – ₹{pred.rangeMax}</span>
+                                    <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Expected range:</span>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-dark)' }}>₹{pred.rangeMin} – ₹{pred.rangeMax}</span>
                                 </div>
                             </div>
                         </div>
@@ -338,6 +373,18 @@ const PricePrediction = () => {
                             <button onClick={() => setSelectedProduct(null)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', cursor: 'pointer', color: '#64748b', transition: 'background 0.2s ease' }} onMouseOver={(e) => e.currentTarget.style.background = '#e2e8f0'} onMouseOut={(e) => e.currentTarget.style.background = '#f1f5f9'}>✕</button>
                         </div>
 
+                        {user?.role === 'farmer' && (
+                             <div style={{ background: '#f0fdf4', padding: '20px', borderRadius: '12px', marginBottom: '25px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                <span style={{ fontSize: '2rem' }}>💡</span>
+                                <div>
+                                    <h4 style={{ margin: '0 0 5px 0', color: '#166534' }}>Farmer Recommendation</h4>
+                                    <p style={{ margin: 0, color: '#14532d' }}>
+                                        For maximum profits, we recommend listing your {selectedProduct.name} for sale on <strong>{selectedProduct.bestDayLabel} ({selectedProduct.bestDayDate})</strong>. Expected price: <strong>₹{selectedProduct.bestDayPrice}/kg</strong>.
+                                    </p>
+                                </div>
+                             </div>
+                        )}
+
                         <div style={{ display: 'grid', gap: '15px' }}>
                             {selectedProduct.forecast.map((day, index) => (
                                 <div key={index} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: index === 0 ? '#f8fafc' : 'white' }}>
@@ -373,4 +420,3 @@ const PricePrediction = () => {
 };
 
 export default PricePrediction;
-

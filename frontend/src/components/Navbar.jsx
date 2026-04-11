@@ -28,11 +28,17 @@ const SearchIcon = () => (
 );
 
 const GlobeIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10"></circle>
     <line x1="2" y1="12" x2="22" y2="12"></line>
     <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
   </svg>
+);
+
+const CaretDownIcon = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ marginLeft: '4px' }}>
+        <path d="M7 10l5 5 5-5z"></path>
+    </svg>
 );
 
 const INDIAN_LANGUAGES = [
@@ -54,20 +60,58 @@ const INDIAN_LANGUAGES = [
 const LanguageSelector = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [filter, setFilter] = useState('');
+    const [currentLangName, setCurrentLangName] = useState('English');
+    const dropdownRef = useRef(null);
 
-    const handleSelect = (code) => {
-        const combo = document.querySelector('.goog-te-combo');
-        if (combo) {
-            if (code === 'en') {
-                // To switch back to English, we clear the cookie and reload for a "Hard Reset"
-                document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + window.location.hostname;
-                window.location.reload();
-            } else {
-                combo.value = code;
-                combo.dispatchEvent(new Event('change', { bubbles: true }));
-            }
+    useEffect(() => {
+        const cookies = document.cookie.split('; ');
+        const transCookie = cookies.find(c => c.startsWith('googtrans='));
+        if (transCookie) {
+            const langCode = transCookie.split('/').pop();
+            const lang = INDIAN_LANGUAGES.find(l => l.code === langCode);
+            if (lang) setCurrentLangName(lang.name);
+        } else {
+            const htmlLang = document.documentElement.lang;
+            const lang = INDIAN_LANGUAGES.find(l => l.code === htmlLang);
+            if (lang) setCurrentLangName(lang.name);
         }
+    }, []);
+
+    // Close on click outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleSelect = (lang) => {
+        const triggerTranslation = () => {
+            const combo = document.querySelector('.goog-te-combo');
+            if (combo) {
+                if (lang.code === 'en') {
+                    document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                    document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + window.location.hostname;
+                    window.location.reload();
+                } else {
+                    combo.value = lang.code;
+                    combo.dispatchEvent(new Event('change', { bubbles: true }));
+                    setCurrentLangName(lang.name);
+                }
+                return true;
+            }
+            return false;
+        };
+
+        // Try immediately
+        if (!triggerTranslation()) {
+            // Retry after a small delay if combo not found (in case script is slow)
+            setTimeout(triggerTranslation, 100);
+        }
+
         setIsOpen(false);
         setFilter('');
     };
@@ -75,15 +119,17 @@ const LanguageSelector = () => {
     const filteredLangs = INDIAN_LANGUAGES.filter(l => l.name.toLowerCase().includes(filter.toLowerCase()));
 
     return (
-        <div style={{ position: 'relative' }}>
-            {/* The hidden anchor for native google translate widget */}
+        <div style={{ position: 'relative' }} ref={dropdownRef}>
             <div id="google_translate_element" style={{ display: 'none' }}></div>
             
             <button 
                 onClick={() => setIsOpen(!isOpen)} 
+                className="language-selector-btn"
                 title="Translate Languages"
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'inherit', display: 'flex', alignItems: 'center' }}>
+            >
                 <GlobeIcon />
+                <span className="lang-label">{currentLangName}</span>
+                <CaretDownIcon />
             </button>
 
             {isOpen && (
@@ -118,10 +164,7 @@ const LanguageSelector = () => {
                         ) : (
                              filteredLangs.map(l => (
                                 <div key={l.code} 
-                                     onMouseDown={(e) => {
-                                        e.preventDefault(); // Prevents focus loss before handler
-                                        handleSelect(l.code);
-                                     }}
+                                     onClick={() => handleSelect(l)}
                                      style={{ padding: '6px 8px', fontSize: '0.9rem', color: '#333', cursor: 'pointer', borderRadius: '4px' }}
                                      onMouseOver={(e) => { e.currentTarget.style.background = '#f0f0f0'; }}
                                      onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; }}
@@ -274,7 +317,7 @@ const Navbar = () => {
           {(!isAuthenticated || !user) && (
             <>
               <li><button className="search-trigger-btn" onClick={() => setIsSearchOpen(true)} title="Search"><SearchIcon /></button></li>
-              <li><NavLink to="/" onClick={() => setMenuOpen(false)} end><PhoneticTerm english="Home" te="హోమ్" hi="होम" ta="ஹோம்" kn="ಹೋಮ್" ml="ഹോം" mr="होम" gu="હોમ" pa="ਹੋਮ" bn="হোম" or="ହୋମ୍" as="হোম" /></NavLink></li>
+              <li><NavLink to="/" onClick={() => setMenuOpen(false)} end><PhoneticTerm english="Home" te="హోమ్" hi="होम" ta="హோம்" kn="ಹೋಮ್" ml="ഹോം" mr="होम" gu="હોમ" pa="ਹੋਮ" bn="হোమ" or="ହୋମ୍" as="হোম" /></NavLink></li>
               <li><NavLink to="/about" onClick={() => setMenuOpen(false)}>About Us</NavLink></li>
               <li><NavLink to="/products" onClick={() => setMenuOpen(false)}>Products</NavLink></li>
               <li><NavLink to="/prices" onClick={() => setMenuOpen(false)}>Live Prices</NavLink></li>
@@ -285,7 +328,7 @@ const Navbar = () => {
           {isAuthenticated && user?.role === "customer" && (
             <>
               <li><button className="search-trigger-btn" onClick={() => setIsSearchOpen(true)} title="Search"><SearchIcon /></button></li>
-              <li><NavLink to="/" onClick={() => setMenuOpen(false)} end><PhoneticTerm english="Home" te="హోమ్" hi="होम" ta="ஹோம்" kn="ಹೋಮ್" ml="ഹോം" mr="होम" gu="હોમ" pa="ਹੋਮ" bn="হোম" or="ହୋମ୍" as="হোম" /></NavLink></li>
+              <li><NavLink to="/" onClick={() => setMenuOpen(false)} end><PhoneticTerm english="Home" te="హోమ్" hi="होम" ta="హோம்" kn="ಹೋಮ್" ml="ഹോം" mr="होम" gu="હોમ" pa="ਹੋਮ" bn="হোম" or="ହୋମ୍" as="হোম" /></NavLink></li>
               <li>
                 <NavLink 
                   to="/products?category=Vegetables" 
@@ -321,7 +364,7 @@ const Navbar = () => {
           {isAuthenticated && user?.role === "farmer" && (
             <>
               <li><button className="search-trigger-btn" onClick={() => setIsSearchOpen(true)} title="Search"><SearchIcon /></button></li>
-              <li><NavLink to="/" onClick={() => setMenuOpen(false)} end><PhoneticTerm english="Home" te="హోమ్" hi="होम" ta="ஹோம்" kn="ಹೋಮ್" ml="ഹോം" mr="होम" gu="હોમ" pa="ਹੋਮ" bn="হোম" or="ହୋମ୍" as="হোম" /></NavLink></li>
+              <li><NavLink to="/" onClick={() => setMenuOpen(false)} end><PhoneticTerm english="Home" te="హోమ్" hi="होम" ta="హోమ్" kn="ಹೋಮ್" ml="ഹോം" mr="होम" gu="હોમ" pa="ਹੋਮ" bn="হোম" or="ହୋମ୍" as="হোম" /></NavLink></li>
               <li><NavLink to="/sell-produce" onClick={() => setMenuOpen(false)}>Sell Produce</NavLink></li>
               <li><NavLink to="/my-products" onClick={() => setMenuOpen(false)}>My Products</NavLink></li>
               <li><NavLink to="/orders-received" onClick={() => setMenuOpen(false)}>Orders Received</NavLink></li>
@@ -393,4 +436,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-

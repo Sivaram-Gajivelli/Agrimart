@@ -350,6 +350,31 @@ html[lang="as"] .phonetic-text .native-label { display: none !important; }
   align-items: center;
 }
 
+.language-selector-btn {
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: #5f6368;
+  transition: background 0.2s, border-color 0.2s;
+  font-family: inherit;
+}
+
+.language-selector-btn:hover {
+  background: #f8f9fa;
+  border-color: #bdc1c6;
+}
+
+.language-selector-btn .lang-label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #3c4043;
+}
+
 /* Hide Google Translate top bar & elements */
 .goog-te-banner-frame, 
 .goog-te-banner,

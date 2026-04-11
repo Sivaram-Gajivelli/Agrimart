@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
-
 const { translate } = require('@vitalets/google-translate-api');
+const { fetchMarketData } = require('../utils/marketData');
 
 // Simple in-memory cache
 const cache = new Map();
@@ -48,16 +48,18 @@ router.get("/prices", async (req, res) => {
 
         let searchCommodity = (commodity || '').trim();
 
-        // 1. Translate if commodity is provided
+        // 1. Translate if commodity is provided and likely non-English
         if (searchCommodity) {
-            try {
-                // Use a more robust check and normalization
-                const translationResult = await translate(searchCommodity, { to: 'en', from: 'auto', client: 'gtx' });
-                if (translationResult.text && translationResult.text.toLowerCase() !== searchCommodity.toLowerCase()) {
-                    searchCommodity = translationResult.text;
+            const isEnglish = /^[A-Za-z\s&]+$/.test(searchCommodity);
+            if (!isEnglish) {
+                try {
+                    const translationResult = await translate(searchCommodity, { to: 'en', from: 'auto', client: 'gtx' });
+                    if (translationResult.text && translationResult.text.toLowerCase() !== searchCommodity.toLowerCase()) {
+                        searchCommodity = translationResult.text;
+                    }
+                } catch (transErr) {
+                    console.error("[Market] Translation failed during price fetch (rate limit likely):", transErr.message);
                 }
-            } catch (transErr) {
-                console.error("[Market] Translation failed during price fetch:", transErr.message);
             }
         }
 
@@ -99,27 +101,23 @@ router.get("/prices", async (req, res) => {
             return res.json(data);
         }
 
-        let apiUrl = `https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070?api-key=${apiKey}&format=json&limit=${resultLimit}`;
+        const searchCommodityForAPI = searchCommodity ? searchCommodity.trim() : "";
+
+        console.log(`[Market] Fetching live price via helper for: ${searchCommodityForAPI || 'All'}`);
         
-        if (searchCommodity) {
-             apiUrl += `&filters[commodity]=${encodeURIComponent(searchCommodity)}`;
-        }
+        const data = await fetchMarketData(searchCommodityForAPI, resultLimit);
 
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-            throw new Error(`External API returned status: ${response.status}`);
+        if (!data) {
+            console.error("[Market] All Agmarknet resources failed and no disk fallback found.");
+            return res.status(503).json({ 
+                error: "External market service is currently unavailable.",
+                status: "error",
+                message: "Service down and no fallback available."
+            });
         }
-
-        const data = await response.json();
         
-        // Attach the translated name used for the search
-        data.translatedCommodity = searchCommodity;
-
-        // Save to cache
-        cache.set(cacheKey, {
-            data,
-            timestamp: Date.now()
-        });
+        // Ensure translatedCommodity is attached for frontend consistency
+        data.translatedCommodity = searchCommodityForAPI;
 
         res.json(data);
     } catch (error) {

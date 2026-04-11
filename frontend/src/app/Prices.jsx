@@ -6,6 +6,7 @@ const Prices = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [lastUpdated, setLastUpdated] = useState(null);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         const fetchAllPrices = async () => {
@@ -63,9 +64,13 @@ const Prices = () => {
                     }
 
                     setPrices(uniquePrices);
+                    setError(null);
+                } else {
+                    setError("Market data is temporarily unavailable from the government source. Please try again later.");
                 }
             } catch (error) {
                 console.error("Error loading live prices:", error);
+                setError("Caught an error while fetching live market data. Please check your connection.");
             } finally {
                 setLoading(false);
             }
@@ -112,6 +117,32 @@ const Prices = () => {
             {loading ? (
                 <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-light)", fontSize: "1.2rem" }}>
                     Loading market data...
+                </div>
+            ) : error ? (
+                <div style={{ 
+                    textAlign: "center", 
+                    padding: "3rem", 
+                    maxWidth: "600px", 
+                    margin: "0 auto",
+                    background: "#fef2f2",
+                    border: "1px solid #fee2e2",
+                    borderRadius: "12px",
+                    color: "#991b1b"
+                }}>
+                    <p style={{ fontSize: "1.1rem", marginBottom: "1rem" }}>⚠️ {error}</p>
+                    <button 
+                        onClick={() => window.location.reload()}
+                        style={{
+                            padding: "8px 20px",
+                            background: "var(--primary)",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "20px",
+                            cursor: "pointer"
+                        }}
+                    >
+                        Try Refreshing
+                    </button>
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '800px', margin: '0 auto' }}>

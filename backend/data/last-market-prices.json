@@ -1,0 +1,57 @@
+{
+  "timestamp": 1744211041908,
+  "data": {
+    "records": [
+      {
+        "state": "Maharashtra",
+        "market": "Mumbai",
+        "commodity": "TOMATO",
+        "variety": "Local",
+        "arrival_date": "09-04-2026",
+        "min_price": "2000",
+        "max_price": "3000",
+        "modal_price": "2500"
+      },
+      {
+        "state": "Karnataka",
+        "market": "Bangalore",
+        "commodity": "POTATO",
+        "variety": "Local",
+        "arrival_date": "09-04-2026",
+        "min_price": "1500",
+        "max_price": "2200",
+        "modal_price": "1800"
+      },
+      {
+        "state": "Uttar Pradesh",
+        "market": "Lucknow",
+        "commodity": "ONION",
+        "variety": "Red",
+        "arrival_date": "09-04-2026",
+        "min_price": "1200",
+        "max_price": "1800",
+        "modal_price": "1500"
+      },
+      {
+        "state": "Delhi",
+        "market": "Azadpur",
+        "commodity": "MANGO",
+        "variety": "Safeda",
+        "arrival_date": "09-04-2026",
+        "min_price": "4000",
+        "max_price": "6000",
+        "modal_price": "5000"
+      },
+      {
+        "state": "Maharashtra",
+        "market": "Pune",
+        "commodity": "APPLE",
+        "variety": "Fuji",
+        "arrival_date": "09-04-2026",
+        "min_price": "8000",
+        "max_price": "12000",
+        "modal_price": "10000"
+      }
+    ]
+  }
+}

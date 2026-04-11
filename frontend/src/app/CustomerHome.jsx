@@ -211,7 +211,7 @@ const CustomerHome = () => {
             {/* Price Comparison */}
             <div style={{ padding: '40px 0', background: 'var(--bg-main)' }}>
                 <h2 style={{ textAlign: 'center', color: 'var(--primary-dark)', fontSize: '2rem', marginBottom: '10px' }}>💰 Price Comparison</h2>
-                <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '30px' }}>Check daily wholesale market rates vs retail prices.</p>
+                <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '30px' }}>Check daily wholesale market rates</p>
                 <LivePrices />
             </div>
         </>
