@@ -9,12 +9,10 @@ const RESOURCE_IDS = [
 ];
 
 const CACHE_FILE = path.join(__dirname, '../data/last-market-prices.json');
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = 15 * 60 * 1000; // Consistent 15-minute TTL
 
-let memoryCache = {
-    data: null,
-    timestamp: 0
-};
+// Memory cache keyed by commodity name (e.g., 'TOMATO', 'ALL')
+const memoryCache = new Map();
 
 /**
  * Robustly fetch market data from data.gov.in using multiple resource IDs as fallbacks.
@@ -29,11 +27,16 @@ async function fetchMarketData(commodity = '', limit = 10) {
         return null;
     }
 
-    // 1. Check Memory Cache
+    const searchKey = commodity ? commodity.trim().toUpperCase() : "ALL";
     const now = Date.now();
-    if (memoryCache.data && (now - memoryCache.timestamp < CACHE_TTL)) {
-        console.log("[Market] Returning data from memory cache.");
-        return memoryCache.data;
+
+    // 1. Check Memory Cache
+    if (memoryCache.has(searchKey)) {
+        const cached = memoryCache.get(searchKey);
+        if (now - cached.timestamp < CACHE_TTL) {
+            console.log(`[Market] Returning data from memory cache for: ${searchKey}`);
+            return cached.data;
+        }
     }
 
     const searchCommodity = commodity ? commodity.trim().toUpperCase() : "";
@@ -48,7 +51,7 @@ async function fetchMarketData(commodity = '', limit = 10) {
                 url += `&filters[commodity]=${encodeURIComponent(searchCommodity)}`;
             }
 
-            console.log(`[Market] Trying resource: ${id}`);
+            console.log(`[Market] Trying resource: ${id} for ${searchKey}`);
             const response = await fetch(url, { signal: controller.signal });
             clearTimeout(timeoutId);
 
@@ -57,36 +60,43 @@ async function fetchMarketData(commodity = '', limit = 10) {
                 break; // Stop trying if quota is hit
             }
 
-            if (response.status === 503) {
-                console.warn(`[Market] Resource ${id} is unavailable (503). Retrying next...`);
-                continue;
-            }
-
             if (!response.ok) {
                 console.warn(`[Market] Resource ${id} failed with status ${response.status}.`);
                 continue;
             }
 
-            const data = await response.json();
+            // Safe JSON parsing
+            const text = await response.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (pErr) {
+                console.warn(`[Market] Resource ${id} returned invalid JSON.`);
+                continue;
+            }
 
-            // Detect Meta not found error within JSON
+            // Detect error message in JSON
             if (data.status === 'error' || data.message === "Meta not found") {
-                console.warn(`[Market] Invalid resource (Meta not found): ${id}`);
+                console.warn(`[Market] Resource ${id} reporting error: ${data.message || 'Unknown'}`);
                 continue;
             }
 
             if (data && data.records && data.records.length > 0) {
-                console.log(`[Market] Success using resource: ${id}`);
+                console.log(`[Market] Success using resource: ${id} for ${searchKey}`);
                 
                 // Update Cache
-                memoryCache = { data, timestamp: now };
+                const cacheValue = { data, timestamp: now };
+                memoryCache.set(searchKey, cacheValue);
                 
-                // Persist to disk as "last known"
+                // Persist 'ALL' and specific lookups to disk to ensure fallback availability
                 try {
                     if (!fs.existsSync(path.dirname(CACHE_FILE))) {
                         fs.mkdirSync(path.dirname(CACHE_FILE), { recursive: true });
                     }
-                    fs.writeFileSync(CACHE_FILE, JSON.stringify(memoryCache, null, 2));
+                    // For disk fallback, we usually want a representative sample, 'ALL' is best
+                    if (searchKey === "ALL") {
+                        fs.writeFileSync(CACHE_FILE, JSON.stringify(cacheValue, null, 2));
+                    }
                 } catch (e) {
                     console.error("[Market] Failed to save local cache file:", e.message);
                 }
@@ -105,13 +115,15 @@ async function fetchMarketData(commodity = '', limit = 10) {
         }
     }
 
-    console.error("[Market] All resources failed.");
+    console.error(`[Market] All resources failed for ${searchKey}.`);
     
-    // 2. Load from disk if available
+    // 2. Load from disk if available (only for ALL or as a general fallback)
     try {
         if (fs.existsSync(CACHE_FILE)) {
             console.log("[Market] Serving last known data from local disk fallback.");
             const savedCache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
+            // If the commodity is specific, we might still return 'ALL' data if nothing else found
+            // or we return the cached response if it happens to be 'ALL'
             return savedCache.data;
         }
     } catch (e) {
@@ -125,3 +137,4 @@ module.exports = {
     fetchMarketData,
     RESOURCE_IDS
 };
+

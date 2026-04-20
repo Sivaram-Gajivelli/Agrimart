@@ -361,7 +361,7 @@ export default function Signup() {
             <div className="input-with-btn">
               <input
                 name="phone"
-                placeholder="Mobile Number"
+                placeholder="10-digit Mobile Number"
                 value={form.phone}
                 onChange={handleChange}
               />

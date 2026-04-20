@@ -7,6 +7,7 @@ const auth = require('../middleware/authMiddleware');
 const { translate } = require('@vitalets/google-translate-api');
 const Fuse = require('fuse.js');
 const { getDistance } = require('../utils/distanceHelper');
+const { getEffectiveProduct } = require('../utils/pricingHelper');
 
 // Super Dictionary: High-Precision Agricultural Terms in 12 Languages
 const seedDictionary = {
@@ -105,7 +106,7 @@ router.get('/search', async (req, res) => {
 
         const products = await Product.find({
             verificationStatus: 'verified'
-        }).populate('farmer', 'name email phone').sort({ createdAt: -1 });
+        }).populate('farmer', 'name email phone').populate('nearestHub').sort({ createdAt: -1 });
 
         const lowerQ = englishQuery.toLowerCase();
 
@@ -134,14 +135,16 @@ router.get('/search', async (req, res) => {
 
         let finalResults = combined.slice(0, 15);
 
+        // 🚀 NEW: Embed FML Cost in pricing
+        finalResults = finalResults.map(p => getEffectiveProduct(p, p.nearestHub));
+
         // Robust Localization
         if (lang && lang !== 'en') {
             finalResults = finalResults.map(p => {
-                const pObj = p.toObject ? p.toObject() : p;
+                const pObj = p;
                 
                 const findInDict = (dict, key) => {
                     const normalizedKey = key.toLowerCase();
-                    // 1. Exact/Shortest match
                     const matchKey = Object.keys(dict).find(k => normalizedKey.includes(k.toLowerCase()) || k.toLowerCase().includes(normalizedKey));
                     return matchKey ? dict[matchKey][lang] : null;
                 };
@@ -154,10 +157,26 @@ router.get('/search', async (req, res) => {
             });
         } else {
             finalResults = finalResults.map(p => ({
-                ...p.toObject ? p.toObject() : p,
+                ...p,
                 displayName: p.productName,
                 displayCategory: p.category
             }));
+        }
+
+        // 🚀 NEW: Distance Sorting
+        if (lat && lng) {
+            const userLat = parseFloat(lat);
+            const userLng = parseFloat(lng);
+            finalResults = finalResults.map(p => {
+                let dist = Infinity;
+                if (p.latitude && p.longitude) {
+                    dist = getDistance(userLat, userLng, p.latitude, p.longitude);
+                } else if (p.farmer && p.farmer.latitude && p.farmer.longitude) {
+                    dist = getDistance(userLat, userLng, p.farmer.latitude, p.farmer.longitude);
+                }
+                return { ...p, distanceToUser: dist };
+            });
+            finalResults.sort((a, b) => a.distanceToUser - b.distanceToUser);
         }
 
         res.json(finalResults);
@@ -181,10 +200,29 @@ router.get('/my-products', auth, async (req, res) => {
 
 router.get('/marketplace', async (req, res) => {
     try {
+        const { lang, lat, lng } = req.query;
         const products = await Product.find({ 
             verificationStatus: 'verified'
-        }).populate('farmer', 'name email phone').sort({ createdAt: -1 });
-        res.json(products);
+        }).populate('farmer', 'name email phone').populate('nearestHub').sort({ createdAt: -1 });
+        
+        // 🚀 NEW: Embed FML Cost in pricing
+        let effectiveProducts = products.map(p => getEffectiveProduct(p, p.nearestHub));
+        
+        // 🚀 NEW: Distance Sorting for Marketplace
+        if (lat && lng) {
+            const userLat = parseFloat(lat);
+            const userLng = parseFloat(lng);
+            effectiveProducts = effectiveProducts.map(p => {
+                let dist = Infinity;
+                if (p.latitude && p.longitude) {
+                    dist = getDistance(userLat, userLng, p.latitude, p.longitude);
+                }
+                return { ...p, distanceToUser: dist };
+            });
+            effectiveProducts.sort((a, b) => a.distanceToUser - b.distanceToUser);
+        }
+
+        res.json(effectiveProducts);
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
     }
@@ -192,9 +230,11 @@ router.get('/marketplace', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
     try {
-        const product = await Product.findById(req.params.id).populate('farmer', 'name email phone');
+        const product = await Product.findById(req.params.id).populate('farmer', 'name email phone').populate('nearestHub');
         if (!product) return res.status(404).json({ message: 'Product not found' });
-        res.json(product);
+        
+        // 🚀 NEW: Embed FML Cost in pricing
+        res.json(getEffectiveProduct(product, product.nearestHub));
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
     }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useLocationContext } from '../context/LocationContext';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../assets/styles/Checkout.css';
@@ -50,6 +51,7 @@ const getProductImage = (productName) => {
 const Checkout = () => {
     const { cart, loading, refreshCart } = useCart();
     const { user, isAuthenticated } = useAuth();
+    const { latitude: userLat, longitude: userLng, address: detectedAddr, detectLocation } = useLocationContext();
     const navigate = useNavigate();
 
     const [address, setAddress] = useState('');
@@ -270,8 +272,10 @@ const Checkout = () => {
     useEffect(() => {
         if (user && user.address) {
             setAddress(user.address);
+        } else if (detectedAddr) {
+            setAddress(detectedAddr);
         }
-    }, [user]);
+    }, [user, detectedAddr]);
 
     useEffect(() => {
         refreshCart();
@@ -340,12 +344,20 @@ const Checkout = () => {
             if (platformFee === 0 && validCartItems.length > 0) platformFee = 5; // Fallback
             
             const tax = 0; // GST is 0
-            const orderTotal = Number(subtotal) + Number(platformFee) + Number(shippingHandling) + Number(tax);
+            
+            // 🚀 NEW: Free Delivery Scheme (Threshold: ₹299)
+            let effectiveShipping = shippingHandling;
+            if (subtotal >= 299) {
+                effectiveShipping = 0;
+            }
+
+            const orderTotal = Number(subtotal) + Number(platformFee) + Number(effectiveShipping) + Number(tax);
             
             return { 
                 subtotal: Number(subtotal) || 0, 
                 platformFee: Number(platformFee) || 0, 
                 shippingHandling: Number(shippingHandling) || 0, 
+                effectiveShipping: Number(effectiveShipping) || 0,
                 tax: Number(tax) || 0, 
                 orderTotal: Number(orderTotal) || 0, 
                 totalWeight: Number(totalWeight) || 0 
@@ -406,7 +418,7 @@ const Checkout = () => {
             await axios.post('/api/orders', {
                 items: checkoutItems,
                 deliveryAddress: address,
-                deliveryFee: totalDeliveryFee,
+                deliveryFee: totals.effectiveShipping, // Pass the effective (potentially waived) fee
                 platformFee: totalPlatformFee
             }, { withCredentials: true });
             await axios.delete('/api/cart/all/clear', { withCredentials: true });
@@ -467,7 +479,7 @@ const Checkout = () => {
                                         <p style={{ margin: 0, fontSize: '0.9rem', color: '#666' }}>Enter your address or use current location</p>
                                         <button 
                                             type="button" 
-                                            onClick={handleGetCurrentLocation}
+                                            onClick={detectLocation}
                                             className="location-btn"
                                         >
                                             📍 Use current location
@@ -562,11 +574,18 @@ const Checkout = () => {
                             </div>
                             <div className="summary-row">
                                 <span>Shipping & handling ({totals.totalWeight}kg):</span>
-                                <span>₹{totals.shippingHandling.toFixed(2)}</span>
+                                <span style={{ color: totals.subtotal >= 299 ? '#166534' : 'inherit', fontWeight: totals.subtotal >= 299 ? 'bold' : 'normal' }}>
+                                    {totals.subtotal >= 299 ? 'FREE' : `₹${totals.shippingHandling.toFixed(2)}`}
+                                </span>
                             </div>
+                            {totals.subtotal < 299 && (
+                                <div className="delivery-promo" style={{ fontSize: '0.8rem', color: '#15803d', textAlign: 'right', marginBottom: '10px' }}>
+                                    Add ₹{(299 - totals.subtotal).toFixed(2)} more for FREE delivery
+                                </div>
+                            )}
                             <div className="summary-row">
                                 <span>Total before tax:</span>
-                                <span>₹{(totals.subtotal + totals.platformFee + totals.shippingHandling).toFixed(2)}</span>
+                                <span>₹{(totals.subtotal + totals.platformFee + totals.effectiveShipping).toFixed(2)}</span>
                             </div>
                             <div className="summary-row">
                                 <span>Estimated tax (GST):</span>

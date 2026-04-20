@@ -54,7 +54,7 @@ const generateOTP = () => {
 const registerValidation = [
   body("name").trim().notEmpty().withMessage("Name is required").isLength({ min: 3 }).withMessage("Name must be at least 3 characters long"),
   body("email").optional({ checkFalsy: true }).isEmail().withMessage("Must be a valid email").normalizeEmail(),
-  body("phone").optional({ checkFalsy: true }).isMobilePhone().withMessage("Must be a valid phone number"),
+  body("phone").optional({ checkFalsy: true }).matches(/^\d{10}$/).withMessage("Must be a valid 10-digit phone number"),
   body("role").isIn(["customer", "farmer"]).withMessage("Invalid user role"),
   // Strong password logic
   body("password")
@@ -713,7 +713,7 @@ router.get("/check-auth", auth, async (req, res) => {
 // =======================
 // LOGOUT (Clear Cookie)
 // =======================
-router.post("/logout", auth, async (req, res) => {
+router.post("/logout", async (req, res) => {
   try {
     // Set isOnline to false if user is a delivery agent
     if (req.user && req.user.role === 'delivery_partner') {

@@ -65,7 +65,15 @@ router.post('/', auth, async (req, res) => {
             await product.save();
         }
 
-        const overallDeliveryFee = Number(deliveryFee) || 0;
+        // 🚀 NEW: Free Delivery Scheme Validation (Threshold: ₹299)
+        const FREE_DELIVERY_THRESHOLD = 299;
+        let overallDeliveryFee = Number(deliveryFee) || 0;
+        
+        if (subtotal >= FREE_DELIVERY_THRESHOLD) {
+            console.log(`[Order] Subtotal ₹${subtotal} >= ₹${FREE_DELIVERY_THRESHOLD}. Waiving delivery fee.`);
+            overallDeliveryFee = 0;
+        }
+
         const overallPlatformFee = Number(platformFee) || 0;
         const totalAmount = subtotal + overallDeliveryFee + overallPlatformFee;
 

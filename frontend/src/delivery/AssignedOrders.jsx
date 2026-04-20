@@ -8,7 +8,6 @@ import '../assets/styles/Delivery.css';
 const AssignedOrders = () => {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [expandedId, setExpandedId] = useState(null);
 
   const fetchAssignments = async () => {
     try {
@@ -57,14 +56,13 @@ const AssignedOrders = () => {
             const order = asng.order;
             const product = asng.product;
             const items = order?.items || (product ? [{ product, farmer: product.farmer }] : []);
-            const isExpanded = expandedId === asng._id;
 
             return (
               <div 
                 key={asng._id} 
                 style={{ 
                   background: 'white', borderRadius: '24px', border: '1px solid #e2e8f0', overflow: 'hidden',
-                  boxShadow: isExpanded ? '0 10px 30px rgba(0,0,0,0.08)' : '0 4px 12px rgba(0,0,0,0.03)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
                   transition: 'all 0.3s ease',
                   marginBottom: '20px'
                 }}
@@ -115,58 +113,50 @@ const AssignedOrders = () => {
                         <CheckCircle size={18} /> Mark Delivered
                       </button>
                     )}
-                    <button 
-                      onClick={() => setExpandedId(isExpanded ? null : asng._id)}
-                      style={{ padding: '10px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', cursor: 'pointer' }}
-                    >
-                      {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                    </button>
                   </div>
                 </div>
 
-                {isExpanded && (
-                  <div style={{ padding: '0 24px 24px', borderTop: '1px solid #f1f5f9', background: '#fcfcfc' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '32px', marginTop: '24px' }}>
-                      <div>
-                        <h4 style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em', marginBottom: '16px' }}>
-                          {isPickup ? 'Pick Up From' : 'Deliver To'}
-                        </h4>
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                          <MapPin size={20} color="#6366f1" style={{ flexShrink: 0 }} />
-                          <div>
-                            <p style={{ fontWeight: 600, margin: '0 0 4px 0' }}>{isPickup ? (order ? items[0]?.farmer?.name : product?.farmer?.name) : order?.buyer?.name}</p>
-                            <p style={{ margin: '0 0 12px 0', fontSize: '0.925rem', color: '#475569', lineHeight: 1.5 }}>
-                              {isPickup ? (order ? items[0]?.farmer?.address : product?.manualLocation || product?.farmer?.manualLocation || product?.farmer?.address) : order?.deliveryAddress}
-                            </p>
-                            <a 
-                              href={`tel:${isPickup ? (order ? items[0]?.farmer?.phone : product?.farmer?.phone) : order?.buyer?.phone}`}
-                              style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6366f1', textDecoration: 'none', fontWeight: 600, fontSize: '0.875rem' }}
-                            >
-                              <Phone size={14} /> {isPickup ? (order ? items[0]?.farmer?.phone : product?.farmer?.phone) : order?.buyer?.phone || 'Contact Buyer'}
-                            </a>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em', marginBottom: '16px' }}>Items Details</h4>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                          {items.map((item, i) => (
-                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                              <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#f1f5f9', overflow: 'hidden' }}>
-                                {getProductImage(item.product?.productName) || item.product?.image ? <img src={getProductImage(item.product?.productName) || item.product?.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : <Package size={20} style={{ padding: '10px' }} color="#94a3b8" />}
-                              </div>
-                              <div>
-                                <p style={{ margin: 0, fontWeight: 500, fontSize: '0.925rem' }}>{item.product?.productName}</p>
-                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>{item.quantity} {item.product?.unit || 'kg'}</p>
-                              </div>
-                            </div>
-                          ))}
+                <div style={{ padding: '0 24px 24px', borderTop: '1px solid #f1f5f9', background: '#fcfcfc' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '32px', marginTop: '24px' }}>
+                    <div>
+                      <h4 style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em', marginBottom: '16px' }}>
+                        {isPickup ? 'Pick Up From' : 'Deliver To'}
+                      </h4>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                        <MapPin size={20} color="#6366f1" style={{ flexShrink: 0 }} />
+                        <div>
+                          <p style={{ fontWeight: 600, margin: '0 0 4px 0' }}>{isPickup ? (order ? items[0]?.farmer?.name : product?.farmer?.name) : order?.buyer?.name}</p>
+                          <p style={{ margin: '0 0 12px 0', fontSize: '0.925rem', color: '#475569', lineHeight: 1.5 }}>
+                            {isPickup ? (order ? items[0]?.farmer?.address : product?.manualLocation || product?.farmer?.manualLocation || product?.farmer?.address) : order?.deliveryAddress}
+                          </p>
+                          <a 
+                            href={`tel:${isPickup ? (order ? items[0]?.farmer?.phone : product?.farmer?.phone) : order?.buyer?.phone}`}
+                            style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6366f1', textDecoration: 'none', fontWeight: 600, fontSize: '0.875rem' }}
+                          >
+                            <Phone size={14} /> {isPickup ? (order ? items[0]?.farmer?.phone : product?.farmer?.phone) : order?.buyer?.phone || 'Contact Buyer'}
+                          </a>
                         </div>
                       </div>
                     </div>
+
+                    <div>
+                      <h4 style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em', marginBottom: '16px' }}>Items Details</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {items.map((item, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#f1f5f9', overflow: 'hidden' }}>
+                              {getProductImage(item.product?.productName) || item.product?.image ? <img src={getProductImage(item.product?.productName) || item.product?.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : <Package size={20} style={{ padding: '10px' }} color="#94a3b8" />}
+                            </div>
+                            <div>
+                              <p style={{ margin: 0, fontWeight: 500, fontSize: '0.925rem' }}>{item.product?.productName}</p>
+                              <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>{item.quantity} {item.product?.unit || 'kg'}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             );
           })}

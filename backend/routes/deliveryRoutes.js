@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
@@ -8,6 +9,8 @@ const Order = require("../models/orderModel");
 const DeliveryAssignment = require("../models/deliveryAssignmentModel");
 const deliveryAuth = require("../middleware/deliveryMiddleware");
 const { updateFarmersRevenue } = require("../utils/revenueHelper");
+const Hub = require("../models/hubModel");
+const { getDistance } = require("../utils/distanceHelper");
 const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
@@ -61,12 +64,16 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// @route   POST /api/delivery/logout
-// @access  Private (Delivery Agent)
-router.post("/logout", deliveryAuth, async (req, res) => {
+router.post("/logout", async (req, res) => {
   try {
-    if (req.user) {
-      await User.findByIdAndUpdate(req.user.id, { isOnline: false });
+    const token = req.cookies?.deliveryToken;
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        await User.findByIdAndUpdate(decoded.id, { isOnline: false });
+      } catch (err) {
+        // Token invalid or expired, ignore and just clear cookie
+      }
     }
 
     res.cookie("deliveryToken", "", {
@@ -91,6 +98,47 @@ router.get("/check-auth", deliveryAuth, async (req, res) => {
     if (!user) return res.status(401).json({ message: "Not authorized" });
     res.json({ isAuthenticated: true, user });
   } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// @route   PUT /api/delivery/toggle-active
+// @access  Private (Delivery Agent)
+router.put("/toggle-active", deliveryAuth, async (req, res) => {
+  try {
+    const { isOnline, latitude, longitude } = req.body;
+    
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "Agent not found" });
+
+    user.isOnline = isOnline;
+    
+    if (isOnline && latitude && longitude) {
+        const hubs = await Hub.find({ status: 'active' });
+        let nearestHub = null;
+        let minDistance = Infinity;
+
+        hubs.forEach(hub => {
+            const dist = getDistance(latitude, longitude, hub.latitude, hub.longitude);
+            if (dist < minDistance) {
+                minDistance = dist;
+                nearestHub = hub._id;
+            }
+        });
+        user.assignedHub = nearestHub;
+    } else if (!isOnline) {
+        user.assignedHub = undefined;
+    }
+
+    await user.save();
+    
+    const populatedUser = await User.findById(user._id)
+        .select("-password")
+        .populate("assignedHub", "name location");
+
+    res.json(populatedUser);
+  } catch (err) {
+    console.error("Toggle Active error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -124,14 +172,52 @@ router.get("/stats", deliveryAuth, async (req, res) => {
       }),
     ]);
 
-    const agent = await User.findById(agentId).select('deliveryRating totalDeliveryRatings');
+    // 💰 Calculate Earnings by Period (Week, Month, Year)
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1));
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+    const earningStats = await DeliveryAssignment.aggregate([
+      { $match: { agent: new mongoose.Types.ObjectId(agentId), status: "Delivered" } },
+      {
+        $group: {
+          _id: null,
+          weekly: {
+            $sum: {
+              $cond: [{ $gte: ["$completedAt", startOfWeek] }, { $ifNull: ["$earnings", 0] }, 0]
+            }
+          },
+          monthly: {
+            $sum: {
+              $cond: [{ $gte: ["$completedAt", startOfMonth] }, { $ifNull: ["$earnings", 0] }, 0]
+            }
+          },
+          yearly: {
+            $sum: {
+              $cond: [{ $gte: ["$completedAt", startOfYear] }, { $ifNull: ["$earnings", 0] }, 0]
+            }
+          }
+        }
+      }
+    ]);
+
+    const earnings = earningStats[0] || { weekly: 0, monthly: 0, yearly: 0 };
+
+    const agent = await User.findById(agentId).select('deliveryRating totalDeliveryRatings revenue');
+
     res.json({ 
       totalAssigned, 
       pickupsPending, 
       outForDelivery, 
       deliveredToday,
       deliveryRating: agent?.deliveryRating || 0,
-      totalRatings: agent?.totalDeliveryRatings || 0
+      totalRatings: agent?.totalDeliveryRatings || 0,
+      revenue: agent?.revenue || 0,
+      earnings
     });
   } catch (error) {
     console.error("Delivery Stats Error:", error);
@@ -240,6 +326,24 @@ router.put("/assignments/:id/status", deliveryAuth, async (req, res) => {
         if (assignment.type === "Pickup") {
           order.trackingStatus = "Delivered to Hub";
           
+          // 🚀 NEW: Calculate Revenue for Agent (Pickup)
+          try {
+            const hubs = await Hub.find();
+            const farmer = order.items[0]?.farmer;
+            const targetHub = hubs.find(h => h._id.toString() === req.user.assignedHub?.toString()) || hubs[0];
+            
+            if (farmer?.latitude && farmer?.longitude && targetHub) {
+                const dist = getDistance(farmer.latitude, farmer.longitude, targetHub.latitude, targetHub.longitude);
+                assignment.distance = Number(dist.toFixed(2));
+                assignment.earnings = Number((15 + (dist * 5)).toFixed(2));
+                
+                // Update agent's total revenue
+                const agent = await User.findById(req.user.id);
+                agent.revenue = (agent.revenue || 0) + assignment.earnings;
+                await agent.save();
+            }
+          } catch (e) { console.error("Revenue Calc Error (Pickup):", e); }
+          
           // 🚀 Notification to Farmer: Product Reached Hub
           const farmerIds = [...new Set(order.items.map((i) => i.farmer?.toString()))];
           const farmers = await User.find({ _id: { $in: farmerIds } });
@@ -282,6 +386,29 @@ router.put("/assignments/:id/status", deliveryAuth, async (req, res) => {
         } else {
           order.trackingStatus = "Delivered";
           await updateFarmersRevenue(order);
+
+          // 🚀 NEW: Calculate Revenue for Agent (Final Delivery)
+          try {
+            const hubs = await Hub.find();
+            const targetHub = hubs.find(h => h._id.toString() === req.user.assignedHub?.toString()) || hubs[0];
+            const buyer = await User.findById(order.buyer).select("latitude longitude");
+            
+            if (targetHub && buyer?.latitude && buyer?.longitude) {
+                const dist = getDistance(targetHub.latitude, targetHub.longitude, buyer.latitude, buyer.longitude);
+                assignment.distance = Number(dist.toFixed(2));
+                assignment.earnings = Number((15 + (dist * 5)).toFixed(2));
+                
+                // Update agent's total revenue
+                const agent = await User.findById(req.user.id);
+                agent.revenue = (agent.revenue || 0) + assignment.earnings;
+                await agent.save();
+            }
+          } catch (e) { console.error("Revenue Calc Error (Delivery):", e); }
+
+          // 💰 Update Agent Revenue (Add delivery fee to agent's account)
+          if (order.deliveryFee > 0) {
+            await User.findByIdAndUpdate(req.user.id, { $inc: { revenue: order.deliveryFee } });
+          }
 
           // 🚀 Notification to Customer: Order Delivered
           if (order.buyer) {
@@ -347,6 +474,22 @@ router.put("/assignments/:id/status", deliveryAuth, async (req, res) => {
       } else if (status === "Delivered") {
         product.deliveryStatus = "At Hub";
         assignment.completedAt = new Date();
+
+        // 🚀 NEW: Calculate Revenue for Agent (Stocking Pickup)
+        try {
+          const hubs = await Hub.find();
+          const targetHub = hubs.find(h => h._id.toString() === req.user.assignedHub?.toString()) || hubs[0];
+          
+          if (product.latitude && product.longitude && targetHub) {
+              const dist = getDistance(product.latitude, product.longitude, targetHub.latitude, targetHub.longitude);
+              assignment.distance = Number(dist.toFixed(2));
+              assignment.earnings = Number((15 + (dist * 5)).toFixed(2));
+              
+              const agent = await User.findById(req.user.id);
+              agent.revenue = (agent.revenue || 0) + assignment.earnings;
+              await agent.save();
+          }
+        } catch (e) { console.error("Revenue Calc Error (Stocking):", e); }
 
         // 🚀 Notification to Farmer: Product Reached Hub (Stocking Flow)
         const farmer = await User.findById(product.farmer);
@@ -484,11 +627,26 @@ router.put("/profile", deliveryAuth, async (req, res) => {
   try {
     const updates = {};
     const allowed = ["name", "phone", "vehicleType", "vehicleNumber"];
-    allowed.forEach((f) => { if (req.body[f] !== undefined) updates[f] = req.body[f]; });
+    allowed.forEach((f) => { 
+      if (req.body[f] !== undefined) {
+        if (f === 'phone' && req.body[f] !== '') {
+          const p = req.body[f].trim();
+          if (!/^\d{10}$/.test(p)) {
+            throw new Error("INVALID_PHONE");
+          }
+          updates[f] = p;
+        } else {
+          updates[f] = req.body[f];
+        }
+      }
+    });
 
     const user = await User.findByIdAndUpdate(req.user.id, updates, { new: true }).select("-password");
     res.json(user);
   } catch (error) {
+    if (error.message === "INVALID_PHONE") {
+      return res.status(400).json({ message: "Please provide a valid 10-digit mobile number." });
+    }
     res.status(500).json({ message: "Server error" });
   }
 });

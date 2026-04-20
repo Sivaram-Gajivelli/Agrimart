@@ -272,7 +272,12 @@ const SearchModal = ({ isOpen, onClose, triggerSearch }) => {
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const { isAuthenticated, user, logoutContext } = useAuth();
+  const { 
+    isAuthenticated, user, 
+    isDeliveryAuthenticated, deliveryAgent,
+    isAdminAuthenticated, admin,
+    logoutContext 
+  } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 

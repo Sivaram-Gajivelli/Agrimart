@@ -15,6 +15,7 @@ const DeliveryDashboard = () => {
   const [isOnline, setIsOnline] = useState(false);
   const [assignedHub, setAssignedHub] = useState(null);
   const [toggling, setToggling] = useState(false);
+  const [revenuePeriod, setRevenuePeriod] = useState('weekly');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -40,37 +41,138 @@ const DeliveryDashboard = () => {
     const newStatus = !isOnline;
 
     try {
-        let location = { latitude: null, longitude: null };
+        const location = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+                (err) => reject(err),
+                { timeout: 10000 }
+            );
+        }).catch(() => null);
 
-        if (newStatus) {
-            // Get current location when going online
-            const pos = await new Promise((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
-            }).catch(() => null);
-
-            if (pos) {
-                location = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
-            } else {
-                toast.warning("Could not get precise location. Hub assignment might be inaccurate.");
+        if (newStatus && !location) {
+            const confirm = window.confirm("Location access denied. We'll use your last known zone. Continue?");
+            if (!confirm) {
+                setToggling(false);
+                return;
             }
         }
 
-        const res = await axios.put('/api/user/toggle-online', { 
+        const res = await axios.put('/api/delivery/toggle-active', { 
             isOnline: newStatus,
             ...location
         }, { withCredentials: true });
 
         setIsOnline(res.data.isOnline);
         setAssignedHub(res.data.assignedHub);
-        toast.success(newStatus ? `You are now ONLINE at ${res.data.assignedHub?.name || 'Nearest Hub'}` : "You are now OFFLINE");
+        toast.success(newStatus ? `ACTIVATE: You are now ACTIVE at ${res.data.assignedHub?.name || 'Nearest Hub'}` : "DEACTIVATE: You are now INACTIVE");
     } catch (err) {
-        toast.error("Failed to update online status");
+        toast.error("Failed to update status");
     } finally {
         setToggling(false);
     }
   };
 
+  const GaugeMeter = ({ percentage }) => {
+    const radius = 140;
+    const stroke = 30;
+    const normalizedRadius = radius - (stroke / 2);
+    const circumference = normalizedRadius * Math.PI; 
+    const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+    return (
+        <div style={{ 
+            position: 'relative', 
+            width: radius * 2, 
+            height: radius + 40, 
+            margin: '0 auto', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center',
+            justifyContent: 'flex-start'
+        }}>
+            <svg height={radius + 20} width={radius * 2} style={{ filter: 'drop-shadow(0px 8px 16px rgba(99, 102, 241, 0.2))' }}>
+                <defs>
+                    <linearGradient id="gauge-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#818cf8" />
+                        <stop offset="50%" stopColor="#6366f1" />
+                        <stop offset="100%" stopColor="#4f46e5" />
+                    </linearGradient>
+                    <filter id="glow">
+                        <feGaussianBlur stdDeviation="3.5" result="coloredBlur"/>
+                        <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                </defs>
+                <circle
+                    stroke="#f1f5f9"
+                    fill="transparent"
+                    strokeWidth={stroke}
+                    strokeDasharray={circumference + ' ' + circumference}
+                    style={{ strokeDashoffset: 0, transform: `rotate(-180deg)`, transformOrigin: `${radius}px ${radius}px` }}
+                    strokeLinecap="round"
+                    r={normalizedRadius}
+                    cx={radius}
+                    cy={radius}
+                />
+                <circle
+                    stroke="url(#gauge-gradient)"
+                    fill="transparent"
+                    strokeWidth={stroke}
+                    strokeDasharray={circumference + ' ' + circumference}
+                    style={{ 
+                        strokeDashoffset, 
+                        transition: 'stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1)', 
+                        transform: `rotate(-180deg)`, 
+                        transformOrigin: `${radius}px ${radius}px` 
+                    }}
+                    strokeLinecap="round"
+                    r={normalizedRadius}
+                    cx={radius}
+                    cy={radius}
+                    filter="url(#glow)"
+                />
+            </svg>
+            <div style={{
+                position: 'absolute', 
+                top: '50%', 
+                left: '50%',
+                transform: 'translate(-50%, 0%)',
+                textAlign: 'center',
+                width: '100%'
+            }}>
+                <span style={{ 
+                    fontSize: '4.5rem', 
+                    fontWeight: 900, 
+                    color: '#1e293b', 
+                    display: 'block', 
+                    lineHeight: 0.85,
+                    background: 'linear-gradient(135deg, #1e293b 0%, #475569 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent'
+                }}>
+                    {percentage.toFixed(0)}%
+                </span>
+                <span style={{ 
+                    fontSize: '0.85rem', 
+                    fontWeight: 800, 
+                    color: '#94a3b8', 
+                    textTransform: 'uppercase', 
+                    letterSpacing: '0.2em',
+                    marginTop: '12px',
+                    display: 'inline-block'
+                }}>
+                    Performance
+                </span>
+            </div>
+        </div>
+    );
+  };
+
   if (loading) return <div>Loading Stats...</div>;
+
+  const currentRevenue = stats.earnings?.[revenuePeriod] || 0;
 
   const statConfig = [
     { 
@@ -99,6 +201,8 @@ const DeliveryDashboard = () => {
     }
   ];
 
+  const successRate = (stats.deliveryRating || 0) * 20; // Transform 5 stars to 100%
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -114,7 +218,7 @@ const DeliveryDashboard = () => {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'white', padding: '8px 16px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
             <span style={{ fontSize: '0.875rem', fontWeight: 600, color: isOnline ? '#10b981' : '#ef4444' }}>
-                {isOnline ? 'ONLINE' : 'OFFLINE'}
+                {isOnline ? 'ACTIVE' : 'INACTIVE'}
             </span>
             <button 
                 onClick={handleToggleOnline}
@@ -136,14 +240,52 @@ const DeliveryDashboard = () => {
       </div>
       <p style={{ color: '#64748b', marginBottom: '40px' }}>
         {isOnline 
-            ? (assignedHub ? `Assigned to: ${assignedHub.name} Hub` : "Waiting for hub assignment...") 
-            : "Go online to start receiving assignments nearby."}
+            ? (assignedHub ? `Zone: ${assignedHub.name} Hub` : "Waiting for zone alignment...") 
+            : "Activate your toggle to start receiving assignments nearby."}
       </p>
 
-      <div className="delivery-status-grid">
+      {/* Hero Stats Section */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(400px, 1fr) 2fr', gap: '24px', marginBottom: '32px' }}>
+          {/* Semicircle Gauge Card */}
+          <div style={{ background: 'white', padding: '32px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 8px 16px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GaugeMeter percentage={successRate} />
+          </div>
+
+          {/* Revenue & Period Selection Card */}
+          <div style={{ background: 'white', padding: '32px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+                  <div>
+                      <h3 style={{ margin: '0 0 4px 0', fontSize: '1rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Earnings Overview</h3>
+                      <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 900, color: '#1e293b' }}>₹{currentRevenue.toLocaleString()}</p>
+                  </div>
+                  <select 
+                      value={revenuePeriod} 
+                      onChange={(e) => setRevenuePeriod(e.target.value)}
+                      style={{ padding: '8px 12px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontWeight: 600, color: '#475569', cursor: 'pointer', outline: 'none' }}
+                  >
+                      <option value="weekly">Current Week</option>
+                      <option value="monthly">Current Month</option>
+                      <option value="yearly">Full Year</option>
+                  </select>
+              </div>
+
+              <div style={{ flex: 1, display: 'flex', gap: '12px' }}>
+                  <div style={{ flex: 1, padding: '16px', borderRadius: '16px', background: '#f0fdf4', border: '1px solid #dcfce7' }}>
+                      <span style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', marginBottom: '8px' }}>Lifetime Balance</span>
+                      <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#166534' }}>₹{Number(stats.revenue || 0).toLocaleString()}</span>
+                  </div>
+                  <div style={{ flex: 1, padding: '16px', borderRadius: '16px', background: '#f5f3ff', border: '1px solid #ede9fe' }}>
+                      <span style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', marginBottom: '8px' }}>Payout Status</span>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#5b21b6' }}>Verified</span>
+                  </div>
+              </div>
+          </div>
+      </div>
+
+      <div className="delivery-status-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
         {statConfig.map((stat, idx) => (
-          <div key={idx} className="delivery-stat-card">
-            <div className="delivery-stat-icon" style={{ backgroundColor: stat.bg }}>
+          <div key={idx} className="delivery-stat-card" style={{ background: 'white', padding: '24px', borderRadius: '20px', border: '1px solid #e2e8f0', display: 'flex', gap: '16px', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {stat.icon}
             </div>
             <div className="delivery-stat-info">

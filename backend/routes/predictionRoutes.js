@@ -51,7 +51,22 @@ router.get('/', (req, res) => {
         .pipe(csv())
         .on('data', (data) => results.push(data))
         .on('end', () => {
-            res.json(results);
+            const now = new Date();
+            now.setHours(0, 0, 0, 0);
+
+            const filtered = results
+                .filter(item => {
+                    const [d, m, y] = item.Date.split('-').map(Number);
+                    const itemDate = new Date(y, m - 1, d);
+                    return itemDate > now;
+                })
+                .sort((a, b) => {
+                    const [d1, m1, y1] = a.Date.split('-').map(Number);
+                    const [d2, m2, y2] = b.Date.split('-').map(Number);
+                    return new Date(y1, m1 - 1, d1) - new Date(y2, m2 - 1, d2);
+                });
+
+            res.json(filtered);
         })
         .on('error', (err) => {
             res.status(500).json({ error: 'Failed to read prediction data.' });
@@ -106,12 +121,21 @@ router.post('/', async (req, res) => {
                     return res.status(404).json({ error: `No prediction data available for ${crop}.` });
                 }
 
-                // Sort by date (assuming DD-MM-YYYY format in CSV)
-                const sorted = predictions.sort((a, b) => {
-                    const [d1, m1, y1] = a.Date.split('-').map(Number);
-                    const [d2, m2, y2] = b.Date.split('-').map(Number);
-                    return new Date(y1, m1 - 1, d1) - new Date(y2, m2 - 1, d2);
-                });
+                // 3. Filter and Sort (assuming DD-MM-YYYY format in CSV)
+                const now = new Date();
+                now.setHours(0, 0, 0, 0);
+
+                const sorted = predictions
+                    .filter(item => {
+                        const [d, m, y] = item.Date.split('-').map(Number);
+                        const itemDate = new Date(y, m - 1, d);
+                        return itemDate > now;
+                    })
+                    .sort((a, b) => {
+                        const [d1, m1, y1] = a.Date.split('-').map(Number);
+                        const [d2, m2, y2] = b.Date.split('-').map(Number);
+                        return new Date(y1, m1 - 1, d1) - new Date(y2, m2 - 1, d2);
+                    });
 
                 const next_7_days = [];
                 let runningPrice = basePrice;

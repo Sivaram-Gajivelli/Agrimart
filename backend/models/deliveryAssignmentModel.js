@@ -48,6 +48,15 @@ const deliveryAssignmentSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: false
+    },
+    // 💰 NEW: Financial Tracking
+    distance: {
+        type: Number, // In km
+        default: 0
+    },
+    earnings: {
+        type: Number, // In ₹
+        default: 0
     }
 }, {
     timestamps: true

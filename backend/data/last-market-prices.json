@@ -1,57 +1,173 @@
 {
-  "timestamp": 1744211041908,
   "data": {
+    "created": 1627939168,
+    "updated": 1776704465,
+    "created_date": "2021-08-02T21:19:28Z",
+    "updated_date": "2026-04-20T17:01:05Z",
+    "active": "1",
+    "index_name": "9ef84268-d588-465a-a308-a864a43d0070",
+    "org": [
+      "Ministry of Agriculture and Farmers Welfare",
+      "Department of Agriculture and Farmers Welfare"
+    ],
+    "org_type": "Central",
+    "source": "data.gov.in",
+    "title": "Current Daily Price of Various Commodities from Various Markets (Mandi)",
+    "external_ws_url": "",
+    "visualizable": "1",
+    "field": [
+      {
+        "name": "State",
+        "id": "state",
+        "type": "keyword"
+      },
+      {
+        "name": "District",
+        "id": "district",
+        "type": "keyword"
+      },
+      {
+        "name": "Market",
+        "id": "market",
+        "type": "keyword"
+      },
+      {
+        "name": "Commodity",
+        "id": "commodity",
+        "type": "keyword"
+      },
+      {
+        "name": "Variety",
+        "id": "variety",
+        "type": "keyword"
+      },
+      {
+        "name": "Grade",
+        "id": "grade",
+        "type": "keyword"
+      },
+      {
+        "name": "Arrival_Date",
+        "id": "arrival_date",
+        "type": "date"
+      },
+      {
+        "name": "Min_x0020_Price",
+        "id": "min_price",
+        "type": "double"
+      },
+      {
+        "name": "Max_x0020_Price",
+        "id": "max_price",
+        "type": "double"
+      },
+      {
+        "name": "Modal_x0020_Price",
+        "id": "modal_price",
+        "type": "double"
+      }
+    ],
+    "external_ws": 0,
+    "catalog_uuid": "6141ea17-a69d-4713-b600-0a43c8fd9a6c",
+    "sector": [
+      "Agriculture",
+      "Agricultural Marketing"
+    ],
+    "target_bucket": {
+      "field": "9ef84268-d588-465a-a308-a864a43d0070",
+      "index": "daily_mandi_price",
+      "type": "6141ea17-a69d-4713-b600-0a43c8fd9a6c"
+    },
+    "desc": "Current Daily Price of Various Commodities from Various Markets (Mandi)",
+    "field_exposed": [
+      {
+        "name": "State",
+        "id": "state.keyword",
+        "type": "keyword"
+      },
+      {
+        "name": "District",
+        "id": "district",
+        "type": "keyword"
+      },
+      {
+        "name": "Market",
+        "id": "market",
+        "type": "keyword"
+      },
+      {
+        "name": "Commodity",
+        "id": "commodity",
+        "type": "keyword"
+      },
+      {
+        "name": "Variety",
+        "id": "variety",
+        "type": "keyword"
+      },
+      {
+        "name": "Grade",
+        "id": "grade",
+        "type": "keyword"
+      }
+    ],
+    "message": "Resource lists",
+    "version": "2.2.0",
+    "status": "ok",
+    "total": 15421,
+    "count": 4,
+    "limit": "4",
+    "offset": "0",
     "records": [
       {
-        "state": "Maharashtra",
-        "market": "Mumbai",
-        "commodity": "TOMATO",
-        "variety": "Local",
-        "arrival_date": "09-04-2026",
-        "min_price": "2000",
-        "max_price": "3000",
-        "modal_price": "2500"
-      },
-      {
-        "state": "Karnataka",
-        "market": "Bangalore",
-        "commodity": "POTATO",
-        "variety": "Local",
-        "arrival_date": "09-04-2026",
-        "min_price": "1500",
-        "max_price": "2200",
-        "modal_price": "1800"
-      },
-      {
         "state": "Uttar Pradesh",
-        "market": "Lucknow",
-        "commodity": "ONION",
-        "variety": "Red",
-        "arrival_date": "09-04-2026",
-        "min_price": "1200",
-        "max_price": "1800",
-        "modal_price": "1500"
+        "district": "Chitrakut",
+        "market": "Karvi APMC",
+        "commodity": "Wheat",
+        "variety": "Other",
+        "grade": "FAQ",
+        "arrival_date": "20/04/2026",
+        "min_price": 2585,
+        "max_price": 2585,
+        "modal_price": 2585
       },
       {
-        "state": "Delhi",
-        "market": "Azadpur",
-        "commodity": "MANGO",
-        "variety": "Safeda",
-        "arrival_date": "09-04-2026",
-        "min_price": "4000",
-        "max_price": "6000",
-        "modal_price": "5000"
+        "state": "Uttarakhand",
+        "district": "Haridwar",
+        "market": "Roorkee APMC",
+        "commodity": "Cauliflower",
+        "variety": "Other",
+        "grade": "Local",
+        "arrival_date": "20/04/2026",
+        "min_price": 500,
+        "max_price": 700,
+        "modal_price": 600
       },
       {
-        "state": "Maharashtra",
-        "market": "Pune",
-        "commodity": "APPLE",
-        "variety": "Fuji",
-        "arrival_date": "09-04-2026",
-        "min_price": "8000",
-        "max_price": "12000",
-        "modal_price": "10000"
+        "state": "Rajasthan",
+        "district": "Jodhpur",
+        "market": "Jodhpur (F&V) APMC",
+        "commodity": "Chikoos(Sapota)",
+        "variety": "Other",
+        "grade": "Medium",
+        "arrival_date": "20/04/2026",
+        "min_price": 2000,
+        "max_price": 5000,
+        "modal_price": 3500
+      },
+      {
+        "state": "Rajasthan",
+        "district": "Jodhpur",
+        "market": "Jodhpur (F&V) APMC",
+        "commodity": "Bottle gourd",
+        "variety": "Other",
+        "grade": "Medium",
+        "arrival_date": "20/04/2026",
+        "min_price": 500,
+        "max_price": 1000,
+        "modal_price": 800
       }
     ]
-  }
+  },
+  "timestamp": 1776706400666
 }

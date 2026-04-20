@@ -23,6 +23,7 @@ router.get("/profile", auth, async (req, res) => {
 
     res.json(user);
   } catch (err) {
+    console.error("GET PROFILE ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -35,6 +36,10 @@ router.post("/verify-request", auth, async (req, res) => {
 
     // Normalize
     contact = contact.trim().toLowerCase();
+
+    if (type === 'phone' && !/^\d{10}$/.test(contact)) {
+      return res.status(400).json({ message: "Please provide a valid 10-digit mobile number." });
+    }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     
@@ -54,6 +59,7 @@ router.post("/verify-request", auth, async (req, res) => {
       return res.json({ message: "Verification code sent to your email inbox" });
     }
   } catch (err) {
+    console.error("VERIFY REQUEST ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -79,6 +85,7 @@ router.post("/verify-confirm", auth, async (req, res) => {
 
     res.json({ message: "Verification successful" });
   } catch (err) {
+    console.error("VERIFY CONFIRM ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -98,13 +105,18 @@ router.put("/profile-update", auth, async (req, res) => {
       await OTP.deleteOne({ contact: normalizedEmail });
     }
 
-    if (phone && phone.trim() !== (user.phone || '')) {
+    if (phone && phone.trim()) {
       const normalizedPhone = phone.trim();
-      const otpSession = await OTP.findOne({ contact: normalizedPhone, isVerified: true });
-      if (!otpSession) return res.status(400).json({ message: "Phone verification required" });
-      user.phone = normalizedPhone;
-      user.isMobileVerified = true;
-      await OTP.deleteOne({ contact: normalizedPhone });
+      if (!/^\d{10}$/.test(normalizedPhone)) {
+        return res.status(400).json({ message: "Please provide a valid 10-digit mobile number." });
+      }
+      if (normalizedPhone !== (user.phone || '')) {
+        const otpSession = await OTP.findOne({ contact: normalizedPhone.toLowerCase(), isVerified: true });
+        if (!otpSession) return res.status(400).json({ message: "Phone verification required" });
+        user.phone = normalizedPhone;
+        user.isMobileVerified = true;
+        await OTP.deleteOne({ contact: normalizedPhone.toLowerCase() });
+      }
     }
 
     if (name) user.name = name;
@@ -113,6 +125,11 @@ router.put("/profile-update", auth, async (req, res) => {
     await user.save();
     res.json({ message: "Profile updated successfully", user });
   } catch (err) {
+    console.error("PROFILE UPDATE ERROR:", err);
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyPattern || {})[0] || 'field';
+      return res.status(400).json({ message: `${field.charAt(0).toUpperCase() + field.slice(1)} already in use by another account.` });
+    }
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -140,51 +157,11 @@ router.put("/change-password", auth, async (req, res) => {
 
     res.json({ message: "Password updated successfully" });
   } catch (err) {
+    console.error("CHANGE PASSWORD ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// TOGGLE ONLINE STATUS (Delivery Partner Only)
-router.put("/toggle-online", auth, async (req, res) => {
-  try {
-    const { isOnline, latitude, longitude } = req.body;
-    
-    const user = await User.findById(req.user.id);
-    if (!user || user.role !== 'delivery_partner') {
-        return res.status(403).json({ message: "Only delivery partners can toggle online status." });
-    }
-
-    user.isOnline = isOnline;
-    
-    if (isOnline && latitude && longitude) {
-        const hubs = await Hub.find({ status: 'active' });
-        let nearestHub = null;
-        let minDistance = Infinity;
-
-        hubs.forEach(hub => {
-            const dist = getDistance(latitude, longitude, hub.latitude, hub.longitude);
-            if (dist < minDistance) {
-                minDistance = dist;
-                nearestHub = hub._id;
-            }
-        });
-        user.assignedHub = nearestHub;
-    } else if (!isOnline) {
-        user.assignedHub = undefined;
-    }
-
-    await user.save();
-    
-    const populatedUser = await User.findById(user._id)
-        .select("-password")
-        .populate("assignedHub", "name location");
-
-    res.json(populatedUser);
-  } catch (err) {
-    console.error("Toggle online error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
 
 // UPDATE PRODUCT DELIVERY STATUS (Farmer to Hub)
 router.put("/product/:id/status", auth, async (req, res) => {

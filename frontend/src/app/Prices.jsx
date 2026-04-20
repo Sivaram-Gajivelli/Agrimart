@@ -11,41 +11,50 @@ const Prices = () => {
     useEffect(() => {
         const fetchAllPrices = async () => {
             try {
-                const statusRes = await fetch("/api/market/status");
-                if (statusRes.ok) {
-                    const statusData = await statusRes.json();
+                // 1. Fetch status in parallel with other data (non-blocking)
+                const statusPromise = fetch("/api/market/status").then(r => r.ok ? r.json() : null).catch(() => null);
+                
+                // 2. Fetch market data sources in parallel
+                const fetchTargets = [
+                    { name: 'all', url: "/api/market/prices?limit=100" },
+                    { name: 'mango', url: "/api/market/prices?commodity=Mango&limit=1" },
+                    { name: 'melon', url: "/api/market/prices?commodity=Water%20Melon&limit=1" },
+                    { name: 'tomato', url: "/api/market/prices?commodity=Tomato&limit=1" }
+                ];
+
+                const results = await Promise.allSettled(fetchTargets.map(t => 
+                    fetch(t.url).then(async r => {
+                        if (!r.ok) throw new Error(`${t.name} fetch failed`);
+                        return r.json();
+                    })
+                ));
+
+                // 3. Handle Status
+                const statusData = await statusPromise;
+                if (statusData && statusData.prices) {
                     setLastUpdated(statusData.prices);
                 }
 
-                // Fetch up to 100 records for the "all prices" view
-                const response = await fetch("/api/market/prices?limit=100");
-                
-                // Fetch explicit commodities
-                const mangoRes = await fetch("/api/market/prices?commodity=Mango&limit=1");
-                const melonRes = await fetch("/api/market/prices?commodity=Water%20Melon&limit=1");
-        
+                // 4. Aggregate Records
                 let allRecords = [];
-
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.records) allRecords = [...data.records];
-                }
-        
-                if (mangoRes.ok) {
-                    const data = await mangoRes.json();
-                    if (data.records) allRecords = [...data.records, ...allRecords]; // Prepend for visibility
-                }
-        
-                if (melonRes.ok) {
-                    const data = await melonRes.json();
-                    if (data.records) allRecords = [...data.records, ...allRecords]; // Prepend for visibility
-                }
+                results.forEach((result, index) => {
+                    if (result.status === 'fulfilled' && result.value?.records) {
+                        // Prepend specific pins, append 'all'
+                        if (fetchTargets[index].name === 'all') {
+                            allRecords = [...allRecords, ...result.value.records];
+                        } else {
+                            allRecords = [...result.value.records, ...allRecords];
+                        }
+                    } else if (result.status === 'rejected') {
+                        console.warn(`Price source failed: ${fetchTargets[index].name}`, result.reason);
+                    }
+                });
 
                 if (allRecords.length > 0) {
                     const formattedPrices = allRecords.map((record, index) => ({
                         id: index + 1,
                         name: record.commodity,
-                        price: record.modal_price ? Math.round(Number(record.modal_price) / 100) : "N/A", // Convert quintal to kg
+                        price: record.modal_price ? (Number(record.modal_price) / 100).toFixed(2) : "N/A",
                         unit: "kg",
                         location: `${record.market}, ${record.state}`,
                         updated: record.arrival_date || "Today",
@@ -56,7 +65,7 @@ const Prices = () => {
                     const uniquePrices = [];
                     const seen = new Set();
                     for (const item of formattedPrices) {
-                        const key = `${item.name}-${item.location}`;
+                        const key = `${item.name}-${item.location}`.toLowerCase();
                         if (!seen.has(key)) {
                             seen.add(key);
                             uniquePrices.push(item);
@@ -66,11 +75,11 @@ const Prices = () => {
                     setPrices(uniquePrices);
                     setError(null);
                 } else {
-                    setError("Market data is temporarily unavailable from the government source. Please try again later.");
+                    setError("Market data is temporarily unavailable. Please try again in 1 minute.");
                 }
             } catch (error) {
                 console.error("Error loading live prices:", error);
-                setError("Caught an error while fetching live market data. Please check your connection.");
+                setError("Unable to connect to market service. Please check your internet connection.");
             } finally {
                 setLoading(false);
             }

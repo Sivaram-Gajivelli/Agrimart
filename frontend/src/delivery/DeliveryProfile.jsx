@@ -37,11 +37,21 @@ const DeliveryProfile = () => {
     }, []);
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        let { name, value } = e.target;
+        if (name === 'phone') {
+            value = value.replace(/\D/g, '').slice(0, 10);
+        }
+        setFormData({ ...formData, [name]: value });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        if (!/^\d{10}$/.test(formData.phone)) {
+            toast.error("Please enter a valid 10-digit mobile number");
+            return;
+        }
+
         try {
             await axios.put('/api/delivery/profile', formData, { withCredentials: true });
             toast.success('Profile updated successfully');
@@ -91,7 +101,7 @@ const DeliveryProfile = () => {
                             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>Phone Number</label>
                             <div style={{ position: 'relative' }}>
                                 <Phone size={18} style={{ position: 'absolute', top: '14px', left: '14px', color: '#94a3b8' }} />
-                                <input name="phone" value={formData.phone} onChange={handleChange} disabled={!isEditing} style={{ width: '100%', padding: '12px 14px 12px 42px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '1rem', background: isEditing ? 'white' : '#f8fafc' }} />
+                                <input name="phone" value={formData.phone} onChange={handleChange} disabled={!isEditing} placeholder="10-digit mobile number" style={{ width: '100%', padding: '12px 14px 12px 42px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '1rem', background: isEditing ? 'white' : '#f8fafc' }} />
                             </div>
                         </div>
 

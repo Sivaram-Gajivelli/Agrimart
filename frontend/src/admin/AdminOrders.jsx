@@ -159,6 +159,8 @@ const StatusActionBar = ({ order }) => {
                         bg = '#d1fae5'; color = '#065f46'; border = '#6ee7b7'; fontWeight = 600;
                     } else if (isCurrent) {
                         bg = '#10b981'; color = '#fff'; border = '#059669'; fontWeight = 700;
+                    } else if (isNext) {
+                        bg = '#fef3c7'; color = '#92400e'; border = '#fde68a'; fontWeight = 600;
                     }
 
                     // Connector line color: green if this step is completed (past), gray otherwise

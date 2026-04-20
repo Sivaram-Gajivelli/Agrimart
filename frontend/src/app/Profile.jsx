@@ -53,6 +53,10 @@ const Profile = () => {
             const type = isEmailNewOrChanged ? 'email' : 'phone';
             const contact = type === 'email' ? profileData.email : profileData.phone;
             
+            if (type === 'phone' && !/^\d{10}$/.test(contact)) {
+                toast.error("Please enter a valid 10-digit mobile number");
+                return;
+            }
             try {
                 const res = await axios.post('/api/user/verify-request', { contact, type }, { withCredentials: true });
                 toast.info(res.data.message);
@@ -70,7 +74,7 @@ const Profile = () => {
             setIsEditingProfile(false);
             fetchProfile();
         } catch (err) {
-            toast.error("Failed to update profile");
+            toast.error(err.response?.data?.message || "Failed to update profile");
         }
     };
 
@@ -248,8 +252,12 @@ const Profile = () => {
                                     <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px', display: 'block', letterSpacing: '0.05em' }}>Mobile Number</label>
                                     <input 
                                         value={profileData.phone} 
-                                        onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                            setProfileData({...profileData, phone: val});
+                                        }}
                                         disabled={!isEditingProfile}
+                                        placeholder="10-digit mobile number"
                                         style={{ width: '100%', padding: '16px', borderRadius: '16px', border: '1px solid #E2E8F0', background: isEditingProfile ? 'white' : '#F8FAFC', fontSize: '1rem', fontWeight: 600 }}
                                     />
                                 </div>

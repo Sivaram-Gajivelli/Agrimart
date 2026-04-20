@@ -61,8 +61,9 @@ const Chatbot = () => {
             const data = await response.json();
             setIsTyping(false);
 
-            if (!response.ok) {
-                throw new Error(data.error || `Server Error (${response.status})`);
+            // Log Quota Info as requested by user
+            if (data.quotaLimit !== undefined) {
+                console.log(`[Chatbot] Quota Left: ${data.quotaLeft} / ${data.quotaLimit}`);
             }
 
             const botMessage = {

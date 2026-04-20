@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useCart } from '../context/CartContext';
+import { useLocationContext } from '../context/LocationContext';
 
 const produceImages = import.meta.glob('../assets/images/produce/*.{png,jpg,jpeg,webp,svg}', { eager: true });
 
@@ -139,6 +140,11 @@ const ProductItem = ({ product, navigate }) => {
                     {product.quantityAvailable <= 0 ? 'Out of Stock' : 'Add to cart'}
                 </button>
             </div>
+            {product.distanceToUser < 50 && (
+                <div style={{ position: 'absolute', top: '10px', left: '10px', background: '#166534', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                    Nearest 📍
+                </div>
+            )}
         </div>
     );
 };
@@ -150,16 +156,18 @@ const Products = () => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+    const { latitude: lat, longitude: lng } = useLocationContext();
 
     useEffect(() => {
         const fetchMarketplace = async () => {
             try {
                 let response;
+                const locQuery = (lat && lng) ? `&lat=${lat}&lng=${lng}` : '';
                 if (searchQuery) {
                     const currentLang = document.documentElement.lang || 'en';
-                    response = await fetch(`/api/products/search?q=${encodeURIComponent(searchQuery)}&lang=${currentLang}`);
+                    response = await fetch(`/api/products/search?q=${encodeURIComponent(searchQuery)}&lang=${currentLang}${locQuery}`);
                 } else {
-                    response = await fetch('/api/products/marketplace');
+                    response = await fetch(`/api/products/marketplace?${locQuery}`);
                 }
                 
                 if (!response.ok) throw new Error('Failed to fetch products');
@@ -202,7 +210,9 @@ const Products = () => {
                 ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px' }}>
                         {products.map(product => (
-                           <ProductItem key={product._id} product={product} navigate={navigate} />
+                           <div key={product._id} style={{ position: 'relative' }}>
+                               <ProductItem product={product} navigate={navigate} />
+                           </div>
                         ))}
                     </div>
                 )}

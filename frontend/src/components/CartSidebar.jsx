@@ -90,6 +90,29 @@ const CartSidebar = () => {
                     >
                         Go to Cart
                     </button>
+                    
+                    {/* 🚀 NEW: Free Delivery Progress Indicator */}
+                    <div className="free-delivery-meter" style={{ marginTop: '15px', padding: '10px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #dcfce7' }}>
+                        {totalPrice >= 299 ? (
+                            <p style={{ margin: 0, fontSize: '0.85rem', color: '#166534', fontWeight: 'bold', textAlign: 'center' }}>
+                                🎉 Your order qualifies for FREE delivery!
+                            </p>
+                        ) : (
+                            <>
+                                <p style={{ margin: '0 0 8px 0', fontSize: '0.8rem', color: '#15803d', textAlign: 'center' }}>
+                                    Add <strong>₹{(299 - totalPrice).toFixed(2)}</strong> more for <strong>FREE Delivery</strong>
+                                </p>
+                                <div style={{ width: '100%', height: '6px', background: '#dcfce7', borderRadius: '10px', overflow: 'hidden' }}>
+                                    <div style={{ 
+                                        width: `${Math.min(100, (totalPrice / 299) * 100)}%`, 
+                                        height: '100%', 
+                                        background: 'var(--primary)', 
+                                        transition: 'width 0.3s ease' 
+                                    }}></div>
+                                </div>
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
 

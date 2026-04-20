@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import ProductCard from "./ProductCard";
 import "../assets/styles/Products.css";
 import { getMarketplaceProducts } from "../services/productService";
+import { useLocationContext } from "../context/LocationContext";
 
 // Import all images from the produce directory eagerly
 const produceImages = import.meta.glob('../assets/images/produce/*.{png,jpg,jpeg,webp,svg}', { eager: true });
@@ -47,11 +48,12 @@ const getProductImage = (productName) => {
 const ProductsSection = ({ activeFilter = 'All', onSeeAll }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { latitude: lat, longitude: lng } = useLocationContext();
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await getMarketplaceProducts();
+        const response = await getMarketplaceProducts({ lat, lng });
         setProducts(response.data);
       } catch (error) {
         console.error("Error fetching marketplace products:", error);
@@ -60,7 +62,7 @@ const ProductsSection = ({ activeFilter = 'All', onSeeAll }) => {
       }
     };
     fetchProducts();
-  }, []);
+  }, [lat, lng]);
 
   // Map display labels to DB categories
   const categoryMap = {
@@ -120,17 +122,23 @@ const ProductsSection = ({ activeFilter = 'All', onSeeAll }) => {
               </div>
               <div className="product-grid">
                 {displayItems.map((product) => (
-                  <ProductCard
-                    key={product._id}
-                    product={{
-                      ...product,
-                      name: product.productName,
-                      price: product.pricePerKg,
-                      producer: product.farmer?.name || "Verified Farmer",
-                      location: product.manualLocation,
-                      image: getProductImage(product.productName) || null
-                    }}
-                  />
+                   <div key={product._id} style={{ position: 'relative' }}>
+                     <ProductCard
+                       product={{
+                         ...product,
+                         name: product.productName,
+                         price: product.pricePerKg,
+                         producer: product.farmer?.name || "Verified Farmer",
+                         location: product.manualLocation,
+                         image: getProductImage(product.productName) || null
+                       }}
+                     />
+                     {product.distanceToUser < 50 && (
+                       <div style={{ position: 'absolute', top: '10px', left: '10px', background: '#166534', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', zIndex: 2 }}>
+                         Nearest 📍
+                       </div>
+                     )}
+                   </div>
                 ))}
               </div>
             </div>

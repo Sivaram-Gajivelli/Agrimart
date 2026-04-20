@@ -3,8 +3,8 @@ const User = require("../models/userModel");
 
 module.exports = async function (req, res, next) {
   try {
-    // Try from deliveryToken cookie first, then fall back to regular token
-    const token = req.cookies?.deliveryToken || req.cookies?.token;
+    // Try from deliveryToken cookie
+    const token = req.cookies?.deliveryToken;
 
     if (!token) {
       return res.status(401).json({ message: "No delivery agent token provided" });

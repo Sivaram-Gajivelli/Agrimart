@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
+import { LocationProvider } from "./context/LocationContext";
 import "./assets/styles/App.css";
 import ErrorBoundary from "./components/ErrorBoundary";
 import MainLayout from "./MainLayout";
@@ -64,78 +65,80 @@ function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <CartProvider>
-          <ToastContainer
-            position="top-center"
-            autoClose={3000}
-            hideProgressBar
-            newestOnTop
-            closeOnClick
-            pauseOnHover
-            theme="colored"
-          />
-          <div className="app">
-            <Routes>
-              {/* Public & Customer/Farmer Shared Routes inside MainLayout */}
-              <Route element={<MainLayout />}>
-                <Route path="/" element={<Home />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/products" element={<Products />} />
-                <Route path="/services" element={<Services />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/prices" element={<Prices />} />
-                <Route path="/sell-produce" element={<SellProduce />} />
-                <Route path="/my-products" element={<MyProducts />} />
-                <Route path="/orders-received" element={<OrdersReceived />} />
-                <Route path="/revenue" element={<OrdersReceived />} />
-                <Route path="/farmer-stock" element={<FarmerStock />} />
-                <Route path="/price-prediction" element={<PricePrediction />} />
-                <Route path="/product/:id" element={<ProductDetails />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/orders" element={<CustomerOrders />} />
-                <Route path="/shipping-policy" element={<ShippingPolicy />} />
-                <Route path="/profile" element={<Profile />} />
-              </Route>
+        <LocationProvider>
+          <CartProvider>
+            <ToastContainer
+              position="top-center"
+              autoClose={3000}
+              hideProgressBar
+              newestOnTop
+              closeOnClick
+              pauseOnHover
+              theme="colored"
+            />
+            <div className="app">
+              <Routes>
+                {/* Public & Customer/Farmer Shared Routes inside MainLayout */}
+                <Route element={<MainLayout />}>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/products" element={<Products />} />
+                  <Route path="/services" element={<Services />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/prices" element={<Prices />} />
+                  <Route path="/sell-produce" element={<SellProduce />} />
+                  <Route path="/my-products" element={<MyProducts />} />
+                  <Route path="/orders-received" element={<OrdersReceived />} />
+                  <Route path="/revenue" element={<OrdersReceived />} />
+                  <Route path="/farmer-stock" element={<FarmerStock />} />
+                  <Route path="/price-prediction" element={<PricePrediction />} />
+                  <Route path="/product/:id" element={<ProductDetails />} />
+                  <Route path="/cart" element={<Cart />} />
+                  <Route path="/checkout" element={<Checkout />} />
+                  <Route path="/orders" element={<CustomerOrders />} />
+                  <Route path="/shipping-policy" element={<ShippingPolicy />} />
+                  <Route path="/profile" element={<Profile />} />
+                </Route>
 
-              {/* Auth Routes */}
-              <Route path="/auth" element={<RoleSelect />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/login/:role" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/signup/:role" element={<Signup />} />
-              <Route path="/forgot-password/verify" element={<ForgotPasswordVerify />} />
-              <Route path="/forgot-password/reset" element={<ForgotPasswordReset />} />
+                {/* Auth Routes */}
+                <Route path="/auth" element={<RoleSelect />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/login/:role" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/signup/:role" element={<Signup />} />
+                <Route path="/forgot-password/verify" element={<ForgotPasswordVerify />} />
+                <Route path="/forgot-password/reset" element={<ForgotPasswordReset />} />
 
-              {/* Admin Routes */}
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<Navigate to="/admin/dashboard" replace />} />
-                <Route path="dashboard" element={<AdminDashboard />} />
-                <Route path="users" element={<AdminUsers />} />
-                <Route path="products" element={<AdminProducts />} />
-                <Route path="orders" element={<AdminOrders />} />
-                <Route path="hubs" element={<AdminHubs />} />
-                <Route path="deliveries" element={<AdminDeliveries />} />
-                <Route path="payments" element={<AdminPayments />} />
-                <Route path="complaints" element={<AdminComplaints />} />
-                <Route path="reports" element={<AdminReports />} />
-                <Route path="settings" element={<AdminSettings />} />
-              </Route>
+                {/* Admin Routes */}
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                  <Route path="dashboard" element={<AdminDashboard />} />
+                  <Route path="users" element={<AdminUsers />} />
+                  <Route path="products" element={<AdminProducts />} />
+                  <Route path="orders" element={<AdminOrders />} />
+                  <Route path="hubs" element={<AdminHubs />} />
+                  <Route path="deliveries" element={<AdminDeliveries />} />
+                  <Route path="payments" element={<AdminPayments />} />
+                  <Route path="complaints" element={<AdminComplaints />} />
+                  <Route path="reports" element={<AdminReports />} />
+                  <Route path="settings" element={<AdminSettings />} />
+                </Route>
 
-              {/* Delivery Agent Routes */}
-              <Route path="/delivery/login" element={<DeliveryLogin />} />
-              <Route path="/delivery" element={<DeliveryLayout />}>
-                <Route index element={<Navigate to="/delivery/dashboard" replace />} />
-                <Route path="dashboard" element={<DeliveryDashboard />} />
-                <Route path="assigned" element={<AssignedOrders />} />
-                <Route path="history" element={<DeliveryHistory />} />
-                <Route path="profile" element={<DeliveryProfile />} />
-              </Route>
-            </Routes>
-          </div>
-        </CartProvider>
+                {/* Delivery Agent Routes */}
+                <Route path="/delivery/login" element={<DeliveryLogin />} />
+                <Route path="/delivery" element={<DeliveryLayout />}>
+                  <Route index element={<Navigate to="/delivery/dashboard" replace />} />
+                  <Route path="dashboard" element={<DeliveryDashboard />} />
+                  <Route path="assigned" element={<AssignedOrders />} />
+                  <Route path="history" element={<DeliveryHistory />} />
+                  <Route path="profile" element={<DeliveryProfile />} />
+                </Route>
+              </Routes>
+            </div>
+          </CartProvider>
+        </LocationProvider>
       </AuthProvider>
     </ErrorBoundary>
   );

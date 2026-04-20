@@ -79,10 +79,7 @@ router.get("/check-auth", adminAuth, async (req, res) => {
   }
 });
 
-// @route   GET /api/admin/logout
-// @desc    Admin logout
-// @access  Private (Admin)
-router.post("/logout", adminAuth, (req, res) => {
+router.post("/logout", (req, res) => {
   res.cookie("adminToken", "", { 
     httpOnly: true, 
     expires: new Date(0),
@@ -97,8 +94,22 @@ router.post("/logout", adminAuth, (req, res) => {
 // @access  Private (Admin)
 router.get("/stats", adminAuth, async (req, res) => {
   try {
+    const { period = 'weekly' } = req.query;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    // Calculate chart start date based on period
+    let chartStartDate = new Date();
+    let groupFormat = "%Y-%m-%d";
+    
+    if (period === 'weekly') {
+        chartStartDate.setDate(today.getDate() - 7);
+    } else if (period === 'monthly') {
+        chartStartDate.setDate(today.getDate() - 30);
+    } else if (period === 'yearly') {
+        chartStartDate.setFullYear(today.getFullYear() - 1);
+        groupFormat = "%Y-%m"; // Group by month for year view
+    }
 
     const [
       farmers, customers, totalOrders, totalProducts,
@@ -126,11 +137,11 @@ router.get("/stats", adminAuth, async (req, res) => {
         }
       ]),
 
-      // Chart Data (Last 7 Days)
+      // Chart Data
       Order.aggregate([
-        { $match: { createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } } },
+        { $match: { createdAt: { $gte: chartStartDate } } },
         { $group: {
-            _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+            _id: { $dateToString: { format: groupFormat, date: "$createdAt" } },
             orders: { $sum: 1 },
             revenue: { $sum: { $cond: [{ $in: ["$trackingStatus", ["Completed", "Delivered"]] }, "$totalAmount", 0] } }
           }
@@ -142,6 +153,28 @@ router.get("/stats", adminAuth, async (req, res) => {
     const totalRevenue = revenueStats[0]?.total || 0;
     const todaysOrders = todaysStats[0]?.count || 0;
     const todaysRevenue = todaysStats[0]?.revenue || 0;
+
+    // 💰 Calculate Period Revenue
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1));
+    startOfWeek.setHours(0, 0, 0, 0);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+    const periodStats = await Order.aggregate([
+      { $match: { trackingStatus: { $in: ["Completed", "Delivered"] } } },
+      {
+        $group: {
+          _id: null,
+          weekly: { $sum: { $cond: [{ $gte: ["$createdAt", startOfWeek] }, "$totalAmount", 0] } },
+          monthly: { $sum: { $cond: [{ $gte: ["$createdAt", startOfMonth] }, "$totalAmount", 0] } },
+          yearly: { $sum: { $cond: [{ $gte: ["$createdAt", startOfYear] }, "$totalAmount", 0] } }
+        }
+      }
+    ]);
+
+    const periodRevenue = periodStats[0] || { weekly: 0, monthly: 0, yearly: 0 };
 
     // Format chart data for frontend
     const formattedChartData = chartData.map(item => ({
@@ -156,6 +189,7 @@ router.get("/stats", adminAuth, async (req, res) => {
       totalOrders,
       totalProducts,
       totalRevenue,
+      periodRevenue,
       pendingDeliveries: await Order.countDocuments({ trackingStatus: { $nin: ["Completed", "Delivered", "Cancelled"] } }),
       complaints: 0, // Pending model implementation
       todaysOrders,
@@ -902,6 +936,40 @@ router.put("/delivery/tracking/:id/complete", adminAuth, async (req, res) => {
 
     assignment.status = status || "Delivered";
     assignment.completedAt = new Date();
+
+    // 🚀 NEW: Calculate Revenue for Agent (Admin Forced Complete)
+    try {
+        const hubs = await Hub.find();
+        const agent = await User.findById(assignment.agent).select("assignedHub");
+        const targetHub = hubs.find(h => h._id.toString() === agent?.assignedHub?.toString()) || hubs[0];
+        
+        let startLat, startLng, endLat, endLng;
+        if (assignment.type === 'Pickup') {
+            const prod = await Product.findById(assignment.product).populate('farmer');
+            const order = await Order.findById(assignment.order).populate('items.farmer');
+            const farmer = order?.items?.[0]?.farmer || prod?.farmer;
+            if (farmer?.latitude && farmer?.longitude && targetHub) {
+                startLat = farmer.latitude; startLng = farmer.longitude;
+                endLat = targetHub.latitude; endLng = targetHub.longitude;
+            }
+        } else {
+            const order = await Order.findById(assignment.order).populate('buyer');
+            if (targetHub && order?.buyer?.latitude && order?.buyer?.longitude) {
+                startLat = targetHub.latitude; startLng = targetHub.longitude;
+                endLat = order.buyer.latitude; endLng = order.buyer.longitude;
+            }
+        }
+
+        if (startLat && startLng && endLat && endLng) {
+            const dist = getDistance(startLat, startLng, endLat, endLng);
+            assignment.distance = Number(dist.toFixed(2));
+            assignment.earnings = Number((15 + (dist * 5)).toFixed(2));
+            
+            // Update agent total
+            await User.findByIdAndUpdate(assignment.agent, { $inc: { revenue: assignment.earnings } });
+        }
+    } catch (e) { console.error("Admin Revenue Calc Error:", e); }
+
     await assignment.save();
 
     if (orderStatus) {
@@ -1059,7 +1127,7 @@ router.put("/delivery/hub-quality-check/:id", adminAuth, async (req, res) => {
 router.get("/delivery/assignments", adminAuth, async (req, res) => {
   try {
     const DeliveryAssignment = require("../models/deliveryAssignmentModel");
-    const assignments = await DeliveryAssignment.find()
+    let assignments = await DeliveryAssignment.find()
       .populate("agent", "name phone email vehicleType vehicleNumber deliveryRating totalDeliveryRatings")
       .populate({
         path: "order",
@@ -1077,7 +1145,18 @@ router.get("/delivery/assignments", adminAuth, async (req, res) => {
       })
       .sort({ assignedAt: -1 });
 
-    res.json(assignments);
+    // 🛡️ Data Sanitation: Filter out assignments that lost their source data (Orphaned/Deleted)
+    assignments = assignments.filter(asng => asng.order || asng.product);
+
+    // Ensure Distance/Earnings are present for safety
+    const sanitized = assignments.map(a => {
+        const obj = a.toObject();
+        obj.distance = obj.distance || 0;
+        obj.earnings = obj.earnings || 0;
+        return obj;
+    });
+
+    res.json(sanitized);
   } catch (error) {
     console.error("Admin Assignments Error:", error);
     res.status(500).json({ message: "Server error" });

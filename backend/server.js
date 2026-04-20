@@ -1,12 +1,10 @@
+require("dotenv").config();
 const express = require("express");
-const dotenv = require("dotenv");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
 const auth = require("./middleware/authMiddleware");
 const { initScheduler } = require("./utils/scheduler");
-
-dotenv.config();
 
 const app = express();
 
@@ -42,6 +40,11 @@ app.use("/api/delivery", require("./routes/deliveryRoutes"));
 app.use("/api/complaints", require("./routes/complaintRoutes"));
 app.use("/api/chatbot", require("./routes/chatbotRoutes"));
 
+// Health Check
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", time: new Date() });
+});
+
 // Protected Test Route
 app.get("/dashboard", auth, (req, res) => {
   res.json({ message: `Welcome ${req.user.role}` });
@@ -49,6 +52,11 @@ app.get("/dashboard", auth, (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log(`Server listening at port ${PORT}`);
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Fatal] Unhandled Rejection at:', promise, 'reason:', reason);
+  // Optional: log to file if needed
+});
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server listening at port ${PORT} on 0.0.0.0`);
 });

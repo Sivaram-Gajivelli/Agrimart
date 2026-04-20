@@ -231,19 +231,34 @@ const AdminDeliveries = () => {
     <div className="admin-deliveries" style={{ padding: '20px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
         <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e293b' }}>Delivery Management</h1>
-        {activeTab === 'agents' && (
-          <button 
-            onClick={() => { 
-                setEditingAgent(null); 
-                setAgentForm({ name: '', email: '', phone: '', password: '', vehicleType: '', vehicleNumber: '', assignedHub: '' }); 
-                resetVerification();
-                setShowAgentModal(true); 
-            }}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#10b981', color: 'white', padding: '10px 20px', borderRadius: '12px', border: 'none', fontWeight: 700, cursor: 'pointer' }}
-          >
-            <Plus size={20} /> Add Agent
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+                onClick={async () => {
+                    if(!window.confirm("Recalculate all delivery revenues based on GPS distance? This will update all agent balances.")) return;
+                    try {
+                        const res = await axios.post('/api/admin/delivery/backfill-revenue', {}, { withCredentials: true });
+                        toast.success(res.data.message);
+                        fetchData();
+                    } catch(err) { toast.error("Backfill failed"); }
+                }}
+                style={{ background: '#f8fafc', color: '#64748b', padding: '10px 15px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+            >
+                Recalculate Revenues
+            </button>
+            {activeTab === 'agents' && (
+            <button 
+                onClick={() => { 
+                    setEditingAgent(null); 
+                    setAgentForm({ name: '', email: '', phone: '', password: '', vehicleType: '', vehicleNumber: '', assignedHub: '' }); 
+                    resetVerification();
+                    setShowAgentModal(true); 
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#10b981', color: 'white', padding: '10px 20px', borderRadius: '12px', border: 'none', fontWeight: 700, cursor: 'pointer' }}
+            >
+                <Plus size={20} /> Add Agent
+            </button>
+            )}
+        </div>
       </div>
       <p style={{ color: '#64748b', marginBottom: '30px' }}>Monitor agents and track active delivery assignments.</p>
 
@@ -307,10 +322,14 @@ const AdminDeliveries = () => {
                             <button onClick={() => deleteAgent(agent._id)} style={{ padding: '8px', borderRadius: '8px', border: 'none', background: '#fef2f2', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={16}/></button>
                         </div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
                         <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '12px', textAlign: 'center' }}>
                             <p style={{ margin: 0, fontSize: '0.65rem', color: '#94a3b8', fontWeight: 800 }}>ACTIVE</p>
                             <p style={{ margin: '4px 0 0', fontWeight: 700 }}>{agent.activeAssignments || 0}</p>
+                        </div>
+                        <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '12px', textAlign: 'center' }}>
+                            <p style={{ margin: 0, fontSize: '0.65rem', color: '#94a3b8', fontWeight: 800 }}>REVENUE</p>
+                            <p style={{ margin: '4px 0 0', fontWeight: 700, color: '#10b981' }}>₹{Number(agent?.revenue || 0).toLocaleString()}</p>
                         </div>
                         <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '12px', textAlign: 'center' }}>
                             <p style={{ margin: 0, fontSize: '0.65rem', color: '#94a3b8', fontWeight: 800 }}>STATUS</p>
@@ -432,9 +451,20 @@ const AdminDeliveries = () => {
 
                 return filteredAssignments.map(asng => {
                 const isPickup = asng.type === 'Pickup';
-                const items = asng.order ? asng.order.items : (asng.product ? [{ product: asng.product, quantity: asng.product.quantityAvailable }] : []);
-                const mainName = isPickup ? (asng.order ? asng.order.items?.[0]?.farmer?.name : asng.product?.farmer?.name) : asng.order?.buyer?.name;
-                const totalQty = asng.order ? asng.order.items?.reduce((h,i)=>h+i.quantity,0) : (asng.product ? asng.product.quantityAvailable : 0);
+                const items = asng.order ? (asng.order.items || []) : (asng.product ? [{ product: asng.product, quantity: asng.product.quantityAvailable }] : []);
+                const mainName = isPickup 
+                    ? (asng.order ? asng.order.items?.[0]?.farmer?.name : asng.product?.farmer?.name) 
+                    : asng.order?.buyer?.name;
+                const totalQty = asng.order 
+                    ? (asng.order.items || []).reduce((h,i)=>h + (i.quantity || 0), 0) 
+                    : (asng.product ? asng.product.quantityAvailable : 0);
+                
+                const mainPhone = isPickup 
+                    ? (asng.order ? asng.order.items?.[0]?.farmer?.phone : asng.product?.farmer?.phone) 
+                    : asng.order?.buyer?.phone;
+                const mainAddress = isPickup 
+                    ? (asng.order ? asng.order.items?.[0]?.farmer?.address : asng.product?.farmer?.address) 
+                    : asng.order?.deliveryAddress;
                 
                 return (
                     <div key={asng._id} style={{ background: 'white', padding: '24px', borderRadius: '24px', border: '1px solid #e2e8f0', position: 'relative', overflow: 'hidden' }}>
@@ -462,24 +492,32 @@ const AdminDeliveries = () => {
                         </div>
 
                         {/* Middle Stats */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
-                            <div style={{ border: '1px solid #e2e8f0', padding: '12px', borderRadius: '12px' }}>
-                                <p style={{ margin: 0, fontSize: '0.65rem', color: '#94a3b8', fontWeight: 800 }}>STATUS</p>
-                                <p style={{ margin: '4px 0 0', fontWeight: 700, color: asng.status === 'Delivered' ? '#10b981' : '#f59e0b', fontSize: '0.9rem' }}>{asng.status}</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '20px' }}>
+                            <div style={{ border: '1px solid #e2e8f0', padding: '8px', borderRadius: '12px', textAlign: 'center' }}>
+                                <p style={{ margin: 0, fontSize: '0.55rem', color: '#94a3b8', fontWeight: 800 }}>STATUS</p>
+                                <p style={{ margin: '2px 0 0', fontWeight: 700, color: asng.status === 'Delivered' ? '#10b981' : '#f59e0b', fontSize: '0.75rem' }}>{asng.status}</p>
                             </div>
-                            <div style={{ border: '1px solid #e2e8f0', padding: '12px', borderRadius: '12px' }}>
-                                <p style={{ margin: 0, fontSize: '0.65rem', color: '#94a3b8', fontWeight: 800 }}>LOAD WEIGHT</p>
-                                <p style={{ margin: '4px 0 0', fontWeight: 700, fontSize: '0.9rem' }}>{totalQty} kg</p>
+                            <div style={{ border: '1px solid #e2e8f0', padding: '8px', borderRadius: '12px', textAlign: 'center' }}>
+                                <p style={{ margin: 0, fontSize: '0.55rem', color: '#94a3b8', fontWeight: 800 }}>WEIGHT</p>
+                                <p style={{ margin: '2px 0 0', fontWeight: 700, fontSize: '0.75rem' }}>{totalQty} kg</p>
+                            </div>
+                            <div style={{ border: '1px solid #e2e8f0', padding: '8px', borderRadius: '12px', textAlign: 'center' }}>
+                                <p style={{ margin: 0, fontSize: '0.55rem', color: '#94a3b8', fontWeight: 800 }}>DISTANCE</p>
+                                <p style={{ margin: '2px 0 0', fontWeight: 700, fontSize: '0.75rem' }}>{asng.distance || 0} km</p>
+                            </div>
+                            <div style={{ border: '1px solid #e2e8f0', padding: '8px', borderRadius: '12px', textAlign: 'center' }}>
+                                <p style={{ margin: 0, fontSize: '0.55rem', color: '#94a3b8', fontWeight: 800 }}>EARNING</p>
+                                <p style={{ margin: '2px 0 0', fontWeight: 700, color: '#6366f1', fontSize: '0.75rem' }}>₹{asng.earnings || 0}</p>
                             </div>
                         </div>
 
                         {/* Details Footer */}
                         <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '15px' }}>
                             <p style={{ margin: 0, fontSize: '0.7rem', color: '#94a3b8', fontWeight: 800 }}>{isPickup ? 'PICKUP FROM FARMER' : 'DELIVERY TO CUSTOMER'}</p>
-                            <p style={{ margin: '4px 0 0', fontWeight: 700 }}>{mainName}</p>
+                            <p style={{ margin: '4px 0 0', fontWeight: 700 }}>{mainName || 'N/A'}</p>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
-                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>📞 {isPickup ? (asng.order ? asng.order.items?.[0]?.farmer?.phone : asng.product?.farmer?.phone) : asng.order?.buyer?.phone}</p>
-                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', lineBreak: 'anywhere' }}>📍 {isPickup ? (asng.order ? asng.order.items?.[0]?.farmer?.address : asng.product?.farmer?.address) : asng.order?.deliveryAddress}</p>
+                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>📞 {mainPhone || 'No contact'}</p>
+                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', lineBreak: 'anywhere' }}>📍 {mainAddress || 'No address provided'}</p>
                             </div>
                             {asng.status === 'Delivered' && (
                                 <div style={{ marginTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

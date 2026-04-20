@@ -1,0 +1,17 @@
+{
+  "watch": ["server.js", "controllers/", "models/", "routes/", "utils/", ".env"],
+  "ext": "js",
+  "ignoreRoot": [
+    ".git",
+    "node_modules",
+    "data",
+    "scratch"
+  ],
+  "ignore": [
+    "**/data/**",
+    "**/scratch/**",
+    "**/*.log",
+    "chatbot_debug.log"
+  ],
+  "delay": "2500"
+}

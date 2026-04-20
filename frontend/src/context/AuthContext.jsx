@@ -70,21 +70,21 @@ export const AuthProvider = ({ children }) => {
     const logoutContext = async (role = 'user') => {
         try {
             if (role === 'admin') {
-                await axios.post("/api/admin/logout", {}, { withCredentials: true });
+                await axios.post("/api/admin/logout", {}, { withCredentials: true }).catch(e => console.warn("Admin logout API failed", e));
                 setIsAdminAuthenticated(false);
                 setAdmin(null);
             } else if (role === 'delivery') {
-                await axios.post("/api/delivery/logout", {}, { withCredentials: true });
+                await axios.post("/api/delivery/logout", {}, { withCredentials: true }).catch(e => console.warn("Delivery logout API failed", e));
                 setIsDeliveryAuthenticated(false);
                 setDeliveryAgent(null);
             } else {
-                await axios.post("/api/auth/logout", {}, { withCredentials: true });
+                await axios.post("/api/auth/logout", {}, { withCredentials: true }).catch(e => console.warn("User logout API failed", e));
                 setIsAuthenticated(false);
                 setUser(null);
                 window.location.href = "/";
             }
         } catch (err) {
-            console.error("Logout failed", err);
+            console.error("Logout process error", err);
         }
     };
 
